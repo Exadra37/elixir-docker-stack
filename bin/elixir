@@ -1,0 +1,202 @@
+#!/bin/bash
+
+set -eu
+
+################################################################################
+# DEFAULTS
+################################################################################
+
+  IMAGE_NAME=exadra37/elixir-phoenix
+  VARIANT=alpine
+  ELIXIR_VERSION=1.8
+  PHOENIX_VERSION=1.4.0
+  CONTAINER_USER=$(id -u)
+  COMMAND=elixir
+  BUILD_PATH=~/bin/vendor/exadra37-docker/elixir/dev-cli/docker/build
+  BACKGROUND_MODE="-it"
+  PORT_MAP="4000:4000"
+  #START_DATABASE=false
+
+  ELIXIR_HOST_DIR="${PWD}"/.local
+  POSTGRES_DATA_DIR="${ELIXIR_HOST_DIR}"/var/lib/postgresql
+
+  # from `/home/username/developer/acme` we will get `developer/acme`
+  CURRENT_PATH="${PWD#*${USER}/}"
+
+  # from `developer/acme` we get `developer_acme`
+  CONTAINER_NAME="${CURRENT_PATH//\//_}"
+
+
+################################################################################
+# FUNCTIONS
+################################################################################
+
+  function Get_Docker_Image_Tag
+  {
+    local _elixir_version="${1? Missing Elixir Version!!!}"
+    local _phoenix_version="${2? Missing Phoenix version!!!}"
+    local _variant="${3? Missing variant for docker image!!!}"
+
+    echo "${_elixir_version}-${_phoenix_version}-${_variant}"
+  }
+
+  function Build_Docker_Image
+  {
+    local _image_name="${1? Missing docker image name!!!}"
+    local _tag="${2? Missing docker image tag!!!}"
+    local _build_path="${3? Missing build path for docker image!!!}"
+    local _variant="${4? Missing variant for docker image!!!}"
+
+    sudo docker build \
+        --file "${_build_path}"/${_variant}".Dockerfile" \
+        -t ${_image_name}:${_tag} \
+        "${_build_path}"
+  }
+
+  function Start_Docker_Container
+  {
+    TAG=$( Get_Docker_Image_Tag "${ELIXIR_VERSION}" "${PHOENIX_VERSION}" "${VARIANT}" )
+
+    sudo docker run \
+      --rm \
+      ${BACKGROUND_MODE} \
+      --name "${CONTAINER_NAME}" \
+      --user ${CONTAINER_USER} \
+      --publish "127.0.0.1:"${PORT_MAP} \
+      --volume "${PWD}":/home/elixir/workspace \
+      --volume "${CONTAINER_NAME}":/var/lib/postgresql \
+      ${IMAGE_NAME}:${TAG} \
+      ${COMMAND} ${@}
+  }
+
+
+################################################################################
+# PARSE INPUT
+################################################################################
+
+  if [ -f .env ]; then
+    source .env
+  fi
+
+  mkdir -p "${ELIXIR_HOST_DIR}" "${POSTGRES_DATA_DIR}"
+
+  for argument in "${@}"; do
+    case "${argument}" in
+
+      --elixir-version )
+        ELIXIR_VERSION="${2? Missing Elixir version!!!}"
+        shift 2
+        ;;
+
+      --phoenix-version )
+        PHOENIX_VERSION="${2? Missing Phoenix version!!!}"
+        shift 2
+        ;;
+
+      -d | --detached )
+        BACKGROUND_MODE="--detach"
+        shift 1
+        ;;
+
+      --db | --database )
+        #START_DATABASE=true
+        CURRENT_BACKGROUND_MODE=${BACKGROUND_MODE}
+        sudo docker volume create "${CONTAINER_NAME}"
+        COMMAND="postgres"
+        BACKGROUND_MODE="--detach"
+        shift 1
+        Start_Docker_Container
+        BACKGROUND_MODE=${CURRENT_BACKGROUND_MODE}
+        ;;
+
+      -p | --port-map )
+        PORT_MAP=${2? Missing host port map for the container, eg: 3000:3000 !!!}
+        shift 2
+        ;;
+
+      -u | --user )
+        CONTAINER_USER=${2? Missing user for container!!!}
+        shift 2
+        ;;
+
+      --variant )
+        VARIANT="${2? Missing variant for docker image... eg: alpine}"
+        shift 2
+        ;;
+
+      build )
+        TAG=$( Get_Docker_Image_Tag "${ELIXIR_VERSION}" "${PHOENIX_VERSION}" "${2:-${VARIANT}}" )
+        Build_Docker_Image "${IMAGE_NAME}" "${TAG}" "${BUILD_PATH}" "${VARIANT}"
+        exit 0
+        ;;
+
+      container-logs )
+        sudo docker logs -f ${CONTAINER_NAME}
+        exit 0
+        ;;
+
+      down )
+        sudo docker stop "${CONTAINER_NAME}"
+        exit 0
+        ;;
+
+      iex )
+        COMMAND=iex
+        shift 1
+        ;;
+
+      mix )
+        COMMAND=mix
+        shift 1
+        ;;
+
+      pgcli )
+        COMMAND=pgcli
+        shift 1
+        ;;
+
+      phx.server )
+        COMMAND="mix phx.server"
+        shift 1
+        sudo docker exec ${BACKGROUND_MODE} ${CONTAINER_NAME} ${COMMAND} ${@}
+
+        if [ "${BACKGROUND_MODE}" == "-it" ]; then
+          sudo docker stop ${CONTAINER_NAME}
+        fi
+
+        exit 0
+        ;;
+
+      shell )
+        shift 1
+        COMMAND=${1:-zsh}
+
+        if [ "$#" -ge 1 ]; then
+          shift 1
+        fi
+
+        ;;
+
+    esac
+  done
+
+
+################################################################################
+# EXECUTION
+################################################################################
+
+  if sudo docker container ls -a | grep -q "${CONTAINER_NAME}" -; then
+    sudo docker exec ${BACKGROUND_MODE} ${CONTAINER_NAME} ${COMMAND} ${@}
+    exit 0
+  else
+    Start_Docker_Container
+  fi
+
+  # if [ "${START_DATABASE}" == "true" ]; then
+  #   sudo docker exec -it ${CONTAINER_NAME} ${COMMAND}
+  # else
+  #   Start_Docker_Container
+  # fi
+
+  #sudo docker stop ${CONTAINER_NAME} && \
+  #sudo docker rm ${CONTAINER_NAME}
