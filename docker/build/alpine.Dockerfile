@@ -15,6 +15,7 @@ ENV CONTAINER_USER=${CONTAINER_USER} \
 RUN apk update && \
   apk upgrade && \
   apk add --no-cache \
+    ca-certificates \
     curl \
     git \
     zsh \
@@ -33,11 +34,46 @@ RUN apk update && \
     musl-dev \
     inotify-tools \
     ttf-freefont \
-    #libcanberra-gtk3 \
-    libcanberra-gtk2 \
+    libcanberra-gtk3 \
     mesa-gl \
     mesa-dri-intel \
-    dbus && \
+    dbus \
+    erlang-xmerl \
+    erlang-dialyzer \
+    erlang-sasl \
+    erlang-runtime-tools \
+    erlang-ssh \
+    erlang-erl-docgen \
+    erlang-eunit \
+    erlang-inets \
+    erlang-tools \
+    erlang-snmp \
+    erlang-et \
+    erlang-dev \
+    erlang-wx \
+    erlang-debugger \
+    erlang-jinterface \
+    erlang-asn1 \
+    erlang-hipe \
+    erlang-odbc \
+    erlang-otp-mibs \
+    erlang-reltool \
+    erlang-crypto \
+    erlang-common-test \
+    erlang-ssl \
+    erlang-mnesia \
+    erlang-os-mon \
+    erlang-erts \
+    erlang-public-key \
+    erlang-observer \
+    erlang-edoc \
+    erlang-eldap \
+    erlang-megaco \
+    erlang-diameter \
+    erlang-wx && \
+
+  rm -rvf /usr/local/lib/erlang/lib/wx-1.8.6 && \
+  ln -s /usr/lib/erlang/lib/wx-1.8.6 /usr/local/lib/erlang/lib && \
 
   pip install psycopg2 pgcli && \
 
@@ -67,61 +103,22 @@ RUN apk update && \
   mkdir /home/"${CONTAINER_USER}"/workspace && \
   chown -R "${CONTAINER_USER}":"${CONTAINER_USER}" /home/"${CONTAINER_USER}"
 
-RUN apk add --no-cache \
-  ca-certificates \
-  erlang-xmerl \
-  erlang-dialyzer \
-  erlang-sasl \
-  erlang-runtime-tools \
-  erlang-ssh \
-  erlang-erl-docgen \
-  erlang-eunit \
-  erlang-inets \
-  erlang-tools \
-  erlang-snmp \
-  erlang-et \
-  erlang-dev \
-  erlang-wx \
-  erlang-debugger \
-  erlang-jinterface \
-  erlang-asn1 \
-  erlang-hipe \
-  erlang-odbc \
-  erlang-otp-mibs \
-  erlang-reltool \
-  erlang-crypto \
-  erlang-common-test \
-  erlang-ssl \
-  erlang-mnesia \
-  erlang-os-mon \
-  erlang-erts \
-  erlang-public-key \
-  erlang-observer \
-  erlang-edoc \
-  erlang-eldap \
-  erlang-megaco \
-  erlang-diameter \
-  erlang-wx \
-  wxgtk \
-  wxgtk-dev
-
-RUN rm -rvf /usr/local/lib/erlang/lib/wx-1.8.6 && \
-  ln -s /usr/lib/erlang/lib/wx-1.8.6 /usr/local/lib/erlang/lib
-
 USER "${CONTAINER_USER}"
 
+# This commands will run under user defined above
 RUN zsh -c "eval 'initdb --username=postgres --pwfile=<(echo postgres)'" && \
 
   # https://docs.docker.com/engine/examples/postgresql_service/
   pg_ctl start && \
-  createdb --username postgres -O postgres testapp_dev
+  createdb --username postgres --owner postgres testapp_dev && \
+  createdb --username postgres --owner postgres testapp_test && \
+  createdb --username postgres --owner postgres testapp_prod && \
 
-VOLUME ["/var/log/postgresql", "/var/lib/postgresql"]
-
-# This commands will run under user defined above
-RUN mix local.hex --force && \
+  mix local.hex --force && \
   mix local.rebar --force && \
   mix archive.install --force hex phx_new
+
+VOLUME ["/var/log/postgresql", "/var/lib/postgresql"]
 
 EXPOSE 5432
 
