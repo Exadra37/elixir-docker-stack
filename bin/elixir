@@ -15,7 +15,6 @@ set -eu
   BUILD_PATH=~/bin/vendor/exadra37-docker/elixir/dev-cli/docker/build
   BACKGROUND_MODE="-it"
   PORT_MAP="4000:4000"
-  #START_DATABASE=false
 
   ELIXIR_HOST_DIR="${PWD}"/.local
   POSTGRES_DATA_DIR="${ELIXIR_HOST_DIR}"/var/lib/postgresql
@@ -57,6 +56,15 @@ set -eu
   {
     TAG=$( Get_Docker_Image_Tag "${ELIXIR_VERSION}" "${PHOENIX_VERSION}" "${VARIANT}" )
 
+    # Setup X11 server authentication
+    # @link http://wiki.ros.org/docker/Tutorials/GUI#The_isolated_way
+    local _xauth_display=":0"
+    local _xsock=/tmp/.X11-unix
+    local _xauth="${ELIXIR_HOST_DIR}"/.docker.xauth
+    touch "${_xauth}"
+    xauth nlist "${_xauth_display}" | sed -e 's/^..../ffff/' | xauth -f "${_xauth}" nmerge -
+
+      #--volume /usr/share/icons:/usr/share/icons:ro \
     sudo docker run \
       --rm \
       ${BACKGROUND_MODE} \
@@ -64,14 +72,17 @@ set -eu
       --user ${CONTAINER_USER} \
       --publish "127.0.0.1:"${PORT_MAP} \
       --volume "${PWD}":/home/elixir/workspace \
-      --volume "${CONTAINER_NAME}":/var/lib/postgresql \
+      --volume "${CONTAINER_NAME}_${VARIANT}":/var/lib/postgresql \
+      --volume="${_xsock}":"${_xsock}":ro \
+      --volume="${_xauth}":"${_xauth}":ro \
+      --env="XAUTHORITY=${_xauth}" \
       ${IMAGE_NAME}:${TAG} \
       ${COMMAND} ${@}
   }
 
 
 ################################################################################
-# PARSE INPUT
+# PARSE INPUT / EXECUTION
 ################################################################################
 
   if [ -f .env ]; then
@@ -99,9 +110,8 @@ set -eu
         ;;
 
       --db | --database )
-        #START_DATABASE=true
         CURRENT_BACKGROUND_MODE=${BACKGROUND_MODE}
-        sudo docker volume create "${CONTAINER_NAME}"
+        sudo docker volume create "${CONTAINER_NAME}_${VARIANT}"
         COMMAND="postgres"
         BACKGROUND_MODE="--detach"
         shift 1
@@ -140,18 +150,8 @@ set -eu
         exit 0
         ;;
 
-      iex )
-        COMMAND=iex
-        shift 1
-        ;;
-
-      mix )
-        COMMAND=mix
-        shift 1
-        ;;
-
-      pgcli )
-        COMMAND=pgcli
+      iex | mix | pgcli )
+        COMMAND=${1}
         shift 1
         ;;
 
@@ -186,17 +186,8 @@ set -eu
 ################################################################################
 
   if sudo docker container ls -a | grep -q "${CONTAINER_NAME}" -; then
-    sudo docker exec ${BACKGROUND_MODE} ${CONTAINER_NAME} ${COMMAND} ${@}
+    sudo docker exec --user ${CONTAINER_USER} ${BACKGROUND_MODE} ${CONTAINER_NAME} ${COMMAND} ${@}
     exit 0
-  else
-    Start_Docker_Container
   fi
 
-  # if [ "${START_DATABASE}" == "true" ]; then
-  #   sudo docker exec -it ${CONTAINER_NAME} ${COMMAND}
-  # else
-  #   Start_Docker_Container
-  # fi
-
-  #sudo docker stop ${CONTAINER_NAME} && \
-  #sudo docker rm ${CONTAINER_NAME}
+  Start_Docker_Container
