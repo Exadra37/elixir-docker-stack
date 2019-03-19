@@ -1,4 +1,6 @@
-FROM elixir:alpine
+ARG ELIXIR_VERSION=1.8
+
+FROM elixir:${ELIXIR_VERSION}-alpine
 
 ARG CONTAINER_USER="elixir"
 ARG CONTAINER_UID="1000"
@@ -31,6 +33,7 @@ RUN apk update && \
     postgresql-libs \
     postgresql-dev \
     gcc \
+    make \
     musl-dev \
     inotify-tools \
     ttf-freefont \
@@ -105,6 +108,9 @@ RUN apk update && \
 
 USER "${CONTAINER_USER}"
 
+ARG PHOENIX_VERSION=1.4.0
+ARG PHOENIX_INSTALL_FROM="hex phx_new ${PHOENIX_VERSION}"
+
 # This commands will run under user defined above
 RUN zsh -c "eval 'initdb --username=postgres --pwfile=<(echo postgres)'" && \
 
@@ -116,7 +122,7 @@ RUN zsh -c "eval 'initdb --username=postgres --pwfile=<(echo postgres)'" && \
 
   mix local.hex --force && \
   mix local.rebar --force && \
-  mix archive.install --force hex phx_new
+  mix archive.install --force ${PHOENIX_INSTALL_FROM}
 
 VOLUME ["/var/log/postgresql", "/var/lib/postgresql"]
 

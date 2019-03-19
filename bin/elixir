@@ -3,27 +3,49 @@
 set -eu
 
 ################################################################################
-# DEFAULTS
+# ENV
 ################################################################################
 
-  IMAGE_NAME=exadra37/elixir-phoenix
-  VARIANT=alpine
-  ELIXIR_VERSION=1.8
-  PHOENIX_VERSION=1.4.0
-  CONTAINER_USER=$(id -u)
-  COMMAND=elixir
-  BUILD_PATH=~/bin/vendor/exadra37-docker/elixir/dev-cli/docker/build
-  BACKGROUND_MODE="-it"
-  PORT_MAP="4000:4000"
+  image_name=exadra37/elixir-phoenix
+  image_variant=alpine
+  elixir_version=1.8
+  phoenix_version=1.4.0
+  run_command=elixir
+  build_path=~/bin/vendor/exadra37-docker/elixir/dev-cli/docker/build
+  background_mode="-it"
+  port_map="4000:4000"
+  elixir_host_dir="${PWD}"/.local
 
-  ELIXIR_HOST_DIR="${PWD}"/.local
-  POSTGRES_DATA_DIR="${ELIXIR_HOST_DIR}"/var/lib/postgresql
+  # We can override any of the above variables in the .env.elixir-dev-cli file
+  #   for the current project we are working on.
+  # Bear in mind that some can be override if provided as an argument or option
+  #   to this bash script.
+  if [ -f .env.elixir-dev-cli ]; then
+    source .env.elixir-dev-cli
+  fi
+
+  phoenix_install_from="hex phx_new ${phoenix_version}"
+
+  # from 1.4.0 assigns 1.4
+  version="${phoenix_version%.*}"
+
+  # Phoenix framework installation procedure changed from 1.4 onwards.
+  if (( $(echo "${version} < 1.4" | bc -l) )); then
+    phoenix_install_from="https://github.com/phoenixframework/archives/raw/master/phx_new-${phoenix_version}.ez"
+  fi
+
+
+################################################################################
+# CONSTANTS
+################################################################################
 
   # from `/home/username/developer/acme` we will get `developer/acme`
   CURRENT_PATH="${PWD#*${USER}/}"
 
   # from `developer/acme` we get `developer_acme`
   CONTAINER_NAME="${CURRENT_PATH//\//_}"
+
+  CONTAINER_USER_ID=$(id -u)
 
 
 ################################################################################
@@ -42,42 +64,62 @@ set -eu
   function Build_Docker_Image
   {
     local _image_name="${1? Missing docker image name!!!}"
-    local _tag="${2? Missing docker image tag!!!}"
-    local _build_path="${3? Missing build path for docker image!!!}"
-    local _variant="${4? Missing variant for docker image!!!}"
+    local _image_variant="${2? Missing variant for docker image!!!}"
+    local _elixir_version="${3? Missing Elixir version!!!}"
+    local _phoenix_version="${4? Missing Phoenix version!!!}"
+    local _phoenix_install_from="${5? Missing Phoenix install command!!!}"
+    local _build_path="${6? Missing build path for docker image!!!}"
+
+    local _tag=$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_image_variant}" )
 
     sudo docker build \
-        --file "${_build_path}"/${_variant}".Dockerfile" \
+        --file "${_build_path}"/${_image_variant}".Dockerfile" \
+        --build-arg "ELIXIR_VERSION=${_elixir_version}" \
+        --build-arg "PHOENIX_VERSION=${_phoenix_version}" \
+        --build-arg "PHOENIX_INSTALL_FROM=${_phoenix_install_from}" \
         -t ${_image_name}:${_tag} \
         "${_build_path}"
   }
 
   function Start_Docker_Container
   {
-    TAG=$( Get_Docker_Image_Tag "${ELIXIR_VERSION}" "${PHOENIX_VERSION}" "${VARIANT}" )
+    local _image_name="${1? Missing docker image name!!!}"
+    local _elixir_version="${2? Missing Elixir version!!!}"
+    local _phoenix_version="${3? Missing Phoenix version!!!}"
+    local _variant="${4? Missing docker image variant!!!}"
+    local _container_name="${5? Missing container name!!!}"
+    local _container_user_id="${6? Missing container user!!!}"
+    local _background_mode="${7? Missing backround mode to run the container!!!}"
+    local _run_command="${8? Missing command to run in the container!!!}"
+    local _host_dir="${9? Missing host dir for Elixir stack setup!!!}"
+
+    shift 9
+
+    local _tag=$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${_variant}" )
 
     # Setup X11 server authentication
     # @link http://wiki.ros.org/docker/Tutorials/GUI#The_isolated_way
     local _xauth_display=":0"
     local _xsock=/tmp/.X11-unix
-    local _xauth="${ELIXIR_HOST_DIR}"/.docker.xauth
+    local _xauth="${_host_dir}"/.docker.xauth
     touch "${_xauth}"
     xauth nlist "${_xauth_display}" | sed -e 's/^..../ffff/' | xauth -f "${_xauth}" nmerge -
 
-      #--volume /usr/share/icons:/usr/share/icons:ro \
     sudo docker run \
       --rm \
-      ${BACKGROUND_MODE} \
-      --name "${CONTAINER_NAME}" \
-      --user ${CONTAINER_USER} \
-      --publish "127.0.0.1:"${PORT_MAP} \
+      "${_background_mode}" \
+      --env-file .env \
+      --name "${_container_name}" \
+      --user "${_container_user_id}" \
+      --publish "127.0.0.1:${port_map}" \
       --volume "${PWD}":/home/elixir/workspace \
-      --volume "${CONTAINER_NAME}_${VARIANT}":/var/lib/postgresql \
+      --volume "${_container_name}_${_variant}":/var/lib/postgresql \
+      --volume /usr/share/icons:/usr/share/icons:ro \
       --volume="${_xsock}":"${_xsock}":ro \
       --volume="${_xauth}":"${_xauth}":ro \
       --env="XAUTHORITY=${_xauth}" \
-      ${IMAGE_NAME}:${TAG} \
-      ${COMMAND} ${@}
+      "${_image_name}:${_tag}" \
+      ${_run_command} ${@}
   }
 
 
@@ -85,63 +127,76 @@ set -eu
 # PARSE INPUT / EXECUTION
 ################################################################################
 
-  if [ -f .env ]; then
-    source .env
-  fi
-
-  mkdir -p "${ELIXIR_HOST_DIR}" "${POSTGRES_DATA_DIR}"
+  mkdir -p "${elixir_host_dir}"
 
   for argument in "${@}"; do
     case "${argument}" in
 
       --elixir-version )
-        ELIXIR_VERSION="${2? Missing Elixir version!!!}"
+        elixir_version="${2? Missing Elixir version!!!}"
         shift 2
         ;;
 
       --phoenix-version )
-        PHOENIX_VERSION="${2? Missing Phoenix version!!!}"
+        phoenix_version="${2? Missing Phoenix version!!!}"
         shift 2
         ;;
 
       -d | --detached )
-        BACKGROUND_MODE="--detach"
+        background_mode="--detach"
         shift 1
         ;;
 
       --db | --database )
-        CURRENT_BACKGROUND_MODE=${BACKGROUND_MODE}
-        sudo docker volume create "${CONTAINER_NAME}_${VARIANT}"
-        COMMAND="postgres"
-        BACKGROUND_MODE="--detach"
+        previous_background_mode=${background_mode}
+        sudo docker volume create "${CONTAINER_NAME}_${image_variant}"
+        run_command="postgres"
+        background_mode="--detach"
         shift 1
-        Start_Docker_Container
-        BACKGROUND_MODE=${CURRENT_BACKGROUND_MODE}
+
+        Start_Docker_Container \
+          "${image_name}" \
+          "${elixir_version}" \
+          "${phoenix_version}" \
+          "${image_variant}" \
+          "${CONTAINER_NAME}" \
+          "${CONTAINER_USER_ID}" \
+          "${background_mode}" \
+          "${run_command}" \
+          "${elixir_host_dir}"
+
+        background_mode=${previous_background_mode}
         ;;
 
-      -p | --port-map )
-        PORT_MAP=${2? Missing host port map for the container, eg: 3000:3000 !!!}
+      -p | --publish )
+        port_map=${2? Missing host port map for the container, eg: 3000:3000 !!!}
         shift 2
         ;;
 
       -u | --user )
-        CONTAINER_USER=${2? Missing user for container!!!}
+        CONTAINER_USER_ID=${2? Missing user for container!!!}
         shift 2
         ;;
 
       --variant )
-        VARIANT="${2? Missing variant for docker image... eg: alpine}"
+        image_variant="${2? Missing variant for docker image... eg: alpine}"
         shift 2
         ;;
 
       build )
-        TAG=$( Get_Docker_Image_Tag "${ELIXIR_VERSION}" "${PHOENIX_VERSION}" "${2:-${VARIANT}}" )
-        Build_Docker_Image "${IMAGE_NAME}" "${TAG}" "${BUILD_PATH}" "${VARIANT}"
+        Build_Docker_Image \
+          "${image_name}" \
+          "${2:-${image_variant}}" \
+          "${elixir_version}" \
+          "${phoenix_version}" \
+          "${phoenix_install_from}" \
+          "${build_path}"
+
         exit 0
         ;;
 
       container-logs )
-        sudo docker logs -f ${CONTAINER_NAME}
+        sudo docker logs -f "${CONTAINER_NAME}"
         exit 0
         ;;
 
@@ -151,17 +206,22 @@ set -eu
         ;;
 
       iex | mix | pgcli )
-        COMMAND=${1}
+        run_command=${1}
         shift 1
         ;;
 
-      phx.server )
-        COMMAND="mix phx.server"
+      up )
         shift 1
-        sudo docker exec ${BACKGROUND_MODE} ${CONTAINER_NAME} ${COMMAND} ${@}
+        run_command="mix ${1:-phx.server}"
 
-        if [ "${BACKGROUND_MODE}" == "-it" ]; then
-          sudo docker stop ${CONTAINER_NAME}
+        if [ "$#" -ge 1 ]; then
+          shift 1
+        fi
+
+        sudo docker exec "${background_mode}" "${CONTAINER_NAME}" ${run_command} ${@}
+
+        if [ "${background_mode}" == "-it" ]; then
+          sudo docker stop "${CONTAINER_NAME}"
         fi
 
         exit 0
@@ -169,7 +229,7 @@ set -eu
 
       shell )
         shift 1
-        COMMAND=${1:-zsh}
+        run_command=${1:-zsh}
 
         if [ "$#" -ge 1 ]; then
           shift 1
@@ -185,9 +245,27 @@ set -eu
 # EXECUTION
 ################################################################################
 
+  if [ ! -f .env ]; then
+    if [ -f .env.example ]; then
+      cp .env.example .env
+    else
+      touch .env
+    fi
+  fi
+
   if sudo docker container ls -a | grep -q "${CONTAINER_NAME}" -; then
-    sudo docker exec --user ${CONTAINER_USER} ${BACKGROUND_MODE} ${CONTAINER_NAME} ${COMMAND} ${@}
+    sudo docker exec --user ${CONTAINER_USER_ID} ${background_mode} ${CONTAINER_NAME} ${run_command} ${@}
     exit 0
   fi
 
-  Start_Docker_Container
+  Start_Docker_Container \
+    "${image_name}" \
+    "${elixir_version}" \
+    "${phoenix_version}" \
+    "${image_variant}" \
+    "${CONTAINER_NAME}" \
+    "${CONTAINER_USER_ID}" \
+    "${background_mode}" \
+    "${run_command}" \
+    "${elixir_host_dir}" \
+    ${@}
