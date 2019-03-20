@@ -14,6 +14,8 @@ ENV CONTAINER_USER=${CONTAINER_USER} \
   DISPLAY=${DISPLAY} \
   PGDATA=/var/lib/postgresql/data
 
+COPY ./scripts ./scripts
+
 RUN apk update && \
   apk upgrade && \
   apk add --no-cache \
@@ -75,8 +77,8 @@ RUN apk update && \
     erlang-diameter \
     erlang-wx && \
 
-  rm -rvf /usr/local/lib/erlang/lib/wx-1.8.6 && \
-  ln -s /usr/lib/erlang/lib/wx-1.8.6 /usr/local/lib/erlang/lib && \
+  # https://elixirforum.com/t/observer-start-is-not-working-on-ubuntu/6018/21?u=exadra37
+  sh /scripts/fix-observer-dependency.sh && \
 
   pip install psycopg2 pgcli && \
 

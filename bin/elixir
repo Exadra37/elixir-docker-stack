@@ -56,9 +56,21 @@ set -eu
   {
     local _elixir_version="${1? Missing Elixir Version!!!}"
     local _phoenix_version="${2? Missing Phoenix version!!!}"
-    local _variant="${3? Missing variant for docker image!!!}"
+    local _image_variant="${3? Missing variant for docker image!!!}"
 
-    echo "${_elixir_version}-${_phoenix_version}-${_variant}"
+    echo "${_elixir_version}-${_phoenix_version}-${_image_variant}"
+  }
+
+  function Create_Docker_Volume
+  {
+    local _container_name="${1? Missing container name!!!}"
+    local _elixir_version="${2? Missing Elixir Version!!!}"
+    local _phoenix_version="${3? Missing Phoenix version!!!}"
+    local _image_variant="${4? Missing variant for docker image!!!}"
+
+    local _tag=$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_image_variant}" )
+
+    sudo docker volume create "${_container_name}_${_tag}"
   }
 
   function Build_Docker_Image
@@ -77,7 +89,7 @@ set -eu
         --build-arg "ELIXIR_VERSION=${_elixir_version}" \
         --build-arg "PHOENIX_VERSION=${_phoenix_version}" \
         --build-arg "PHOENIX_INSTALL_FROM=${_phoenix_install_from}" \
-        -t ${_image_name}:${_tag} \
+        --tag ${_image_name}:${_tag} \
         "${_build_path}"
   }
 
@@ -86,7 +98,7 @@ set -eu
     local _image_name="${1? Missing docker image name!!!}"
     local _elixir_version="${2? Missing Elixir version!!!}"
     local _phoenix_version="${3? Missing Phoenix version!!!}"
-    local _variant="${4? Missing docker image variant!!!}"
+    local _image_variant="${4? Missing docker image variant!!!}"
     local _container_name="${5? Missing container name!!!}"
     local _container_user_id="${6? Missing container user!!!}"
     local _background_mode="${7? Missing backround mode to run the container!!!}"
@@ -95,7 +107,7 @@ set -eu
 
     shift 9
 
-    local _tag=$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${_variant}" )
+    local _tag=$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_image_variant}" )
 
     # Setup X11 server authentication
     # @link http://wiki.ros.org/docker/Tutorials/GUI#The_isolated_way
@@ -113,7 +125,7 @@ set -eu
       --user "${_container_user_id}" \
       --publish "127.0.0.1:${port_map}" \
       --volume "${PWD}":/home/elixir/workspace \
-      --volume "${_container_name}_${_variant}":/var/lib/postgresql \
+      --volume "${_container_name}_${_tag}":/var/lib/postgresql \
       --volume /usr/share/icons:/usr/share/icons:ro \
       --volume="${_xsock}":"${_xsock}":ro \
       --volume="${_xauth}":"${_xauth}":ro \
@@ -147,9 +159,20 @@ set -eu
         shift 1
         ;;
 
+      -it )
+        background_mode="-it"
+        shift 1
+        ;;
+
       --db | --database )
         previous_background_mode=${background_mode}
-        sudo docker volume create "${CONTAINER_NAME}_${image_variant}"
+
+        Create_Docker_Volume \
+          "${CONTAINER_NAME}" \
+          "${elixir_version}" \
+          "${phoenix_version}" \
+          "${image_variant}"
+
         run_command="postgres"
         background_mode="--detach"
         shift 1
