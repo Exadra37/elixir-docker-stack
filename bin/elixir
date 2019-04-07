@@ -84,13 +84,17 @@ set -eu
 
     local _tag=$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_image_variant}" )
 
+    local _dockerfile_path="${_build_path}"/${_image_variant}".Dockerfile"
+
+    printf "\nBUILDING FROM DOCKERFILE: ${_dockerfile_path}\n\n"
+
     sudo docker build \
-        --file "${_build_path}"/${_image_variant}".Dockerfile" \
-        --build-arg "ELIXIR_VERSION=${_elixir_version}" \
-        --build-arg "PHOENIX_VERSION=${_phoenix_version}" \
-        --build-arg "PHOENIX_INSTALL_FROM=${_phoenix_install_from}" \
-        --tag ${_image_name}:${_tag} \
-        "${_build_path}"
+      --file "${_dockerfile_path}" \
+      --build-arg "ELIXIR_VERSION=${_elixir_version}" \
+      --build-arg "PHOENIX_VERSION=${_phoenix_version}" \
+      --build-arg "PHOENIX_INSTALL_FROM=${_phoenix_install_from}" \
+      --tag ${_image_name}:${_tag} \
+      "${_build_path}"
   }
 
   function Start_Docker_Container
