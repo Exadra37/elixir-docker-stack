@@ -8,11 +8,10 @@ Main()
   # EXECUTION
   ##############################################################################
 
-    apt install -y \
-      python \
-      python-dev \
-      python-pip \
-      pgcli
+      # python \
+      # python-dev \
+      # python-pip \
+    apt install -y --no-install-recommends pgcli
 }
 
 Main

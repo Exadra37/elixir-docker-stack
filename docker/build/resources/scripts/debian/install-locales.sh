@@ -16,7 +16,7 @@ Main()
   # EXECUTION
   ##############################################################################
 
-    apt install -y locales
+    apt install -y --no-install-recommends locales
 
     echo "${localization} ${encoding}" > /etc/locale.gen
     locale-gen "${encoding}"

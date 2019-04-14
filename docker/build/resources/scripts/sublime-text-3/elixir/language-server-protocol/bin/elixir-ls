@@ -8,7 +8,7 @@ Main()
   # EXECUTION
   ##############################################################################
 
-    cd ~/elixir-ls && mix run --no-halt
+    /home/elixir/elixir-ls/rel/language_server.sh
 }
 
 Main

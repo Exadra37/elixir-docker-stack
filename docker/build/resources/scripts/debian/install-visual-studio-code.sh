@@ -18,7 +18,7 @@ Main()
     # Install Visual Studio Code
     curl -L 'https://go.microsoft.com/fwlink/?LinkID=760868' -o "${VSCODE_FILE}"
 
-    apt install -y ./"${VSCODE_FILE}" \
+    apt install -y --no-install-recommends ./"${VSCODE_FILE}" \
       apt-transport-https \
       libasound2 \
       libcanberra-gtk-module \

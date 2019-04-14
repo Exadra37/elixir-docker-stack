@@ -16,13 +16,13 @@ Main()
   # EXECUTION
   ##############################################################################
 
-    apt install -y zsh
+    apt install -y --no-install-recommends zsh
 
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 
     cp -v /root/.zshrc "${home_dir}"/.zshrc
 
-    cp -rv /root/.oh-my-zsh "${home_dir}"/.oh-my-zsh
+    cp -r /root/.oh-my-zsh "${home_dir}"/.oh-my-zsh
 
     sed -i "s|/root|${home_dir}|g" "${home_dir}"/.zshrc
 

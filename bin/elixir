@@ -7,7 +7,7 @@ set -eu
 ################################################################################
 
   image_name=exadra37/elixir-phoenix
-  image_variant=alpine
+  dockerfile=alpine
   elixir_version=1.8
   phoenix_version=1.4.0
   run_command=elixir
@@ -16,12 +16,12 @@ set -eu
   port_map="4000:4000"
   elixir_host_dir="${PWD}"/.local
 
-  # We can override any of the above variables in the .env.elixir-dev-cli file
+  # We can override any of the above variables in the .env.elixir-docker-stack file
   #   for the current project we are working on.
   # Bear in mind that some can be override if provided as an argument or option
   #   to this bash script.
-  if [ -f .env.elixir-dev-cli ]; then
-    source .env.elixir-dev-cli
+  if [ -f .env.elixir-docker-stack ]; then
+    source .env.elixir-docker-stack
   fi
 
   phoenix_install_from="hex phx_new ${phoenix_version}"
@@ -30,22 +30,9 @@ set -eu
   version="${phoenix_version%.*}"
 
   # Phoenix framework installation procedure changed from 1.4 onwards.
-  if (( $(echo "${version} < 1.4" | bc -l) )); then
+  if [ "${version}" \< "1.4" ]; then
     phoenix_install_from="https://github.com/phoenixframework/archives/raw/master/phx_new-${phoenix_version}.ez"
   fi
-
-
-################################################################################
-# CONSTANTS
-################################################################################
-
-  # from `/home/username/developer/acme` we will get `developer/acme`
-  CURRENT_PATH="${PWD#*${USER}/}"
-
-  # from `developer/acme` we get `developer_acme`
-  CONTAINER_NAME="${CURRENT_PATH//\//_}"
-
-  CONTAINER_USER_ID=$(id -u)
 
 
 ################################################################################
@@ -56,44 +43,57 @@ set -eu
   {
     local _elixir_version="${1? Missing Elixir Version!!!}"
     local _phoenix_version="${2? Missing Phoenix version!!!}"
-    local _image_variant="${3? Missing variant for docker image!!!}"
+    local _dockerfile="${3? Missing variant for docker image!!!}"
 
-    echo "${_elixir_version}-${_phoenix_version}-${_image_variant}"
+    if [ "${_dockerfile}" = "observer-debian" ]; then
+      echo "${_elixir_version}"
+    else
+      echo "${_elixir_version}-${_phoenix_version}-${_dockerfile}"
+    fi
   }
 
   function Create_Docker_Volume
   {
     local _container_name="${1? Missing container name!!!}"
-    local _elixir_version="${2? Missing Elixir Version!!!}"
-    local _phoenix_version="${3? Missing Phoenix version!!!}"
-    local _image_variant="${4? Missing variant for docker image!!!}"
 
-    local _tag=$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_image_variant}" )
+    printf "\n---> CREATING DOCKER VOLUME: ${_container_name}\n"
 
-    sudo docker volume create "${_container_name}_${_tag}"
+    sudo docker volume create "${_container_name}"
   }
 
   function Build_Docker_Image
   {
     local _image_name="${1? Missing docker image name!!!}"
-    local _image_variant="${2? Missing variant for docker image!!!}"
+    local _dockerfile="${2? Missing variant for docker image!!!}"
     local _elixir_version="${3? Missing Elixir version!!!}"
     local _phoenix_version="${4? Missing Phoenix version!!!}"
     local _phoenix_install_from="${5? Missing Phoenix install command!!!}"
     local _build_path="${6? Missing build path for docker image!!!}"
 
-    local _tag=$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_image_variant}" )
+    if [ "${_dockerfile}" = "observer-debian" ]; then
+      printf "\nDOCKERFILE: $_dockerfile \n"
+      local _image_name=exadra37/observer
+      local _elixir_version=latest
+    fi
 
-    local _dockerfile_path="${_build_path}"/${_image_variant}".Dockerfile"
+    local _tag="$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_dockerfile}" )"
+    local _docker_image="${_image_name}:${_tag}"
 
-    printf "\nBUILDING FROM DOCKERFILE: ${_dockerfile_path}\n\n"
+    local _dockerfile_path="${_build_path}"/${_dockerfile}".Dockerfile"
+
+    printf "\n---> BUILDING FROM DOCKERFILE: ${_dockerfile_path}\n"
+
+    printf "\n---> DOCKER IMAGE: ${_docker_image}\n"
 
     sudo docker build \
+      --no-cache \
+      --force-rm \
+      --pull \
       --file "${_dockerfile_path}" \
       --build-arg "ELIXIR_VERSION=${_elixir_version}" \
       --build-arg "PHOENIX_VERSION=${_phoenix_version}" \
       --build-arg "PHOENIX_INSTALL_FROM=${_phoenix_install_from}" \
-      --tag ${_image_name}:${_tag} \
+      --tag ${_docker_image} \
       "${_build_path}"
   }
 
@@ -102,16 +102,55 @@ set -eu
     local _image_name="${1? Missing docker image name!!!}"
     local _elixir_version="${2? Missing Elixir version!!!}"
     local _phoenix_version="${3? Missing Phoenix version!!!}"
-    local _image_variant="${4? Missing docker image variant!!!}"
-    local _container_name="${5? Missing container name!!!}"
-    local _container_user_id="${6? Missing container user!!!}"
-    local _background_mode="${7? Missing backround mode to run the container!!!}"
-    local _run_command="${8? Missing command to run in the container!!!}"
-    local _host_dir="${9? Missing host dir for Elixir stack setup!!!}"
+    local _dockerfile="${4? Missing docker image variant!!!}"
+    local _app_name="${5? Missing the APP name!!!}"
+    local _container_name="${6? Missing container name!!!}"
+    local _container_user="${7? Missing container user!!!}"
+    local _background_mode="${8? Missing backround mode to run the container!!!}"
+    local _run_command="${9? Missing command to run in the container!!!}"
+    local _host_dir="${10? Missing host dir for Elixir stack setup!!!}"
 
-    shift 9
+    shift 10
 
-    local _tag=$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_image_variant}" )
+    if [ "${_dockerfile}" = "observer-debian" ]; then
+      _image_name=exadra37/observer
+      _elixir_version=latest
+      #_app_hostname="${_app_name}.observer"
+    #else
+      #_app_hostname="${_app_name}.app"
+    fi
+
+    #local _app_node_name=
+
+    local _tag="$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_dockerfile}" )"
+
+    if sudo docker container ls -a | grep -q "${_container_name}" -; then
+
+      printf "\n---> ATTACHING TO CONTAINER: ${_container_name}\n"
+
+      printf "\n---> COMMAND TO RUN: ${_run_command}\n\n"
+
+      #local _app_node_name="${_app_name}@$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -i")"
+
+      sudo docker exec \
+        --user ${_container_user} \
+        --env "APP_NODE_NAME=${APP_NODE_NAME}" \
+        --env "APP_NODE_COOKIE=${ELIXIR_NODE_COOKIE}" \
+        ${_background_mode} \
+        ${_container_name} \
+        ${_run_command} ${@}
+
+
+      # if [ "${background_mode}" == "-it" ]; then
+      #   sudo docker stop "${CONTAINER_NAME}"
+      # fi
+
+      exit 0
+    fi
+
+    local _docker_image="${_image_name}:${_tag}"
+
+
 
     # Setup X11 server authentication
     # @link http://wiki.ros.org/docker/Tutorials/GUI#The_isolated_way
@@ -121,22 +160,58 @@ set -eu
     touch "${_xauth}"
     xauth nlist "${_xauth_display}" | sed -e 's/^..../ffff/' | xauth -f "${_xauth}" nmerge -
 
+    printf "\n---> STARTING DOCKER IMAGE: ${_docker_image}\n"
+
+    printf "\n---> CONTAINER USER: ${_container_user}\n"
+
+    #printf "\n---> COMMAND TO RUN: ${run_command}\n\n"
+
+    sudo docker network create observer &> /dev/null || true
+
+    #--volume /usr/share/icons:/usr/share/icons:ro \
+    #--device /dev/dri \
+    # --hostname "${_app_hostname}" \
+    #--env "APP_NODE_NAME=${APP_NODE_NAME}" \
+
     sudo docker run \
       --rm \
       "${_background_mode}" \
       --env-file .env \
+      --env "APP_NODE_NAME=${APP_NODE_NAME}" \
+      --env "APP_NODE_COOKIE=${ELIXIR_NODE_COOKIE}" \
       --name "${_container_name}" \
-      --user "${_container_user_id}" \
+      --user "${_container_user}" \
+      --network observer \
       --publish "127.0.0.1:${port_map}" \
-      --volume "${PWD}":/home/elixir/workspace \
-      --volume "${_container_name}_${_tag}":/var/lib/postgresql \
-      --volume /usr/share/icons:/usr/share/icons:ro \
+      --volume "${PWD}":/home/"${_container_user}"/workspace \
+      --volume "${_container_name}_${_tag}_var_lib_postgresql":/var/lib/postgresql \
+      --volume "${_container_name}_${_tag}_var_log_postgresql":/var/log/postgresql \
+      --volume "${_container_name}_${_tag}_config_sublime_text_3":/home/"${_container_user}"/.config/sublime-text-3 \
       --volume="${_xsock}":"${_xsock}":ro \
       --volume="${_xauth}":"${_xauth}":ro \
       --env="XAUTHORITY=${_xauth}" \
-      "${_image_name}:${_tag}" \
-      ${_run_command} ${@}
+      "${_docker_image}" \
+      sh -c "${_run_command}" #${@}
   }
+
+
+################################################################################
+# CONSTANTS
+################################################################################
+
+  # from `/home/username/developer/acme` we will get `developer/acme`
+  CURRENT_PATH="${PWD#*${USER}/}"
+
+  APP_NAME="${CURRENT_PATH//\//_}"
+
+  APP_NODE_NAME=""
+
+  # from `developer/acme` we get `developer_acme`
+  CONTAINER_NAME="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
+
+  CONTAINER_USER=elixir
+
+  ELIXIR_NODE_COOKIE="super-long-secret-cookie"
 
 
 ################################################################################
@@ -171,11 +246,7 @@ set -eu
       --db | --database )
         previous_background_mode=${background_mode}
 
-        Create_Docker_Volume \
-          "${CONTAINER_NAME}" \
-          "${elixir_version}" \
-          "${phoenix_version}" \
-          "${image_variant}"
+        Create_Docker_Volume "${CONTAINER_NAME}"
 
         run_command="postgres"
         background_mode="--detach"
@@ -185,14 +256,19 @@ set -eu
           "${image_name}" \
           "${elixir_version}" \
           "${phoenix_version}" \
-          "${image_variant}" \
+          "${dockerfile}" \
+          "${APP_NAME}" \
           "${CONTAINER_NAME}" \
-          "${CONTAINER_USER_ID}" \
+          "${CONTAINER_USER}" \
           "${background_mode}" \
           "${run_command}" \
           "${elixir_host_dir}"
 
         background_mode=${previous_background_mode}
+        ;;
+
+      --no-cache )
+        # not implemented yet
         ;;
 
       -p | --publish )
@@ -201,19 +277,20 @@ set -eu
         ;;
 
       -u | --user )
-        CONTAINER_USER_ID=${2? Missing user for container!!!}
+        CONTAINER_USER=${2? Missing user for container!!!}
         shift 2
         ;;
 
-      --variant )
-        image_variant="${2? Missing variant for docker image... eg: alpine}"
+      --dockerfile )
+        dockerfile="${2? Missing variant for docker image... eg: alpine}"
+        CONTAINER_NAME="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
         shift 2
         ;;
 
       build )
         Build_Docker_Image \
           "${image_name}" \
-          "${2:-${image_variant}}" \
+          "${2:-${dockerfile}}" \
           "${elixir_version}" \
           "${phoenix_version}" \
           "${phoenix_install_from}" \
@@ -237,21 +314,93 @@ set -eu
         shift 1
         ;;
 
-      up )
+      observer )
         shift 1
-        run_command="mix ${1:-phx.server}"
+        #remote_sname="${2? Missing name of the node we want to connect to!!!}"
+        remote_cookie="${1:-${ELIXIR_NODE_COOKIE}}"
 
         if [ "$#" -ge 1 ]; then
           shift 1
         fi
 
-        sudo docker exec "${background_mode}" "${CONTAINER_NAME}" ${run_command} ${@}
+        dockerfile="observer-debian"
+        port_map="9999:4000"
+        CONTAINER_USER="observer"
+        background_mode="-it"
 
-        if [ "${background_mode}" == "-it" ]; then
-          sudo docker stop "${CONTAINER_NAME}"
+        node_address="$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -i")"
+        APP_NODE_NAME="${APP_NAME}@$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -i")"
+
+        CONTAINER_NAME="observer_${APP_NAME}"
+
+
+        # to implement over ssh tunnel:
+        #   * https://sgeos.github.io/elixir/erlang/observer/2016/09/16/elixir_erlang_running_otp_observer_remotely.html
+        #   * https://github.com/Stratus3D/dotfiles/blob/master/scripts/tools/epmd_port_forwarder
+        #   * https://github.com/Nebo15/k8s-utils
+        #   * https://chazsconi.github.io/2017/04/22/observing-remote-elixir-docker-nodes.html
+        #
+        # http://jbavari.github.io/blog/2016/03/11/using-erlang-observer-on-a-remote-elixir-server/
+        #run_command="erl -sname observer -hidden -setcookie ${remote_cookie} -run observer"
+        #run_command="/home/observer/workspace/iex.sh ${node_address} ${ELIXIR_NODE_COOKIE} ${APP_NAME}"
+        #run_command="/home/observer/workspace/iex.sh"
+
+        run_command=zsh
+        #run_command="iex --name observer --cookie ${ELIXIR_NODE_COOKIE} -e 'Node.connect(:\"${APP_NODE_NAME}\"); :observer.start()'"
+
+        ;;
+
+      observer-cli )
+        shift 1
+        remote_shell="${1:-${APP_NODE_NAME}}"
+        dockerfile="observer-debian"
+        port_map="9998:4000"
+        CONTAINER_USER="observer"
+        CONTAINER_NAME="observer_${APP_NAME}"
+
+        run_command="iex --sname observer_cli --hidden --cookie ${ELIXIR_NODE_COOKIE} --remsh ${remote_shell}"
+
+        # TODO:
+        #  * observer_cli binary seems not be able to connect to the remote node
+        #   from inside a docker container.
+        #  * https://chazsconi.github.io/2017/04/22/observing-remote-elixir-docker-nodes.html
+        #run_command="observer_cli elixir@b09b4f769088 ${ELIXIR_NODE_COOKIE}"
+
+        if [ "$#" -ge 1 ]; then
+          shift 1
+        fi
+        ;;
+
+      observer-shell )
+        APP_NODE_NAME="${APP_NAME}@$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -i")"
+
+        dockerfile="observer-debian"
+        port_map="9997:4000"
+        CONTAINER_USER="observer"
+        CONTAINER_NAME="observer_${APP_NAME}"
+        run_command=zsh
+
+
+        shift 1
+        ;;
+
+      up )
+        shift 1
+        phoenix_command="${1:-phx.server}"
+
+        if [ "$#" -ge 1 ]; then
+          shift 1
         fi
 
-        exit 0
+        #node_address="$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -f")"
+
+        APP_NODE_NAME="${APP_NAME}@$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -i")"
+
+        # we need to set the --cookie and -sname in order to be able to use the
+        # Observer from another docker container in the same docker network.
+        #run_command="elixir --cookie ${ELIXIR_NODE_COOKIE} --name '${APP_NODE_NAME}' -S mix ${1:-phx.server}"
+        run_command="/home/elixir/workspace/elixir.sh ${APP_NAME} ${ELIXIR_NODE_COOKIE} ${phoenix_command}"
+
         ;;
 
       shell )
@@ -280,19 +429,31 @@ set -eu
     fi
   fi
 
-  if sudo docker container ls -a | grep -q "${CONTAINER_NAME}" -; then
-    sudo docker exec --user ${CONTAINER_USER_ID} ${background_mode} ${CONTAINER_NAME} ${run_command} ${@}
-    exit 0
-  fi
+  # if sudo docker container ls -a | grep -q "${CONTAINER_NAME}" -; then
+
+  #   printf "\n---> ATTACHING TO CONTAINER: ${CONTAINER_NAME}\n"
+
+  #   printf "\n---> COMMAND TO RUN: ${run_command}\n\n"
+
+  #   sudo docker exec --user ${CONTAINER_USER} ${background_mode} ${CONTAINER_NAME} ${run_command} ${@}
+
+
+  #   # if [ "${background_mode}" == "-it" ]; then
+  #   #   sudo docker stop "${CONTAINER_NAME}"
+  #   # fi
+
+  #   exit 0
+  # fi
 
   Start_Docker_Container \
     "${image_name}" \
     "${elixir_version}" \
     "${phoenix_version}" \
-    "${image_variant}" \
+    "${dockerfile}" \
+    "${APP_NAME}" \
     "${CONTAINER_NAME}" \
-    "${CONTAINER_USER_ID}" \
+    "${CONTAINER_USER}" \
     "${background_mode}" \
     "${run_command}" \
     "${elixir_host_dir}" \
-    ${@}
+    "${@}"

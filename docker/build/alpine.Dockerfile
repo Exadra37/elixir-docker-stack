@@ -14,7 +14,7 @@ ENV CONTAINER_USER=${CONTAINER_USER} \
   DISPLAY=${DISPLAY} \
   PGDATA=/var/lib/postgresql/data
 
-COPY ./scripts ./scripts
+COPY ./resources /docker-build-resources
 
 RUN apk update && \
   apk upgrade && \
@@ -78,7 +78,7 @@ RUN apk update && \
     erlang-wx && \
 
   # https://elixirforum.com/t/observer-start-is-not-working-on-ubuntu/6018/21?u=exadra37
-  sh /scripts/fix-observer-dependency.sh && \
+  /docker-build-resources/scripts/elixir/observer/fix-dependencies.sh  && \
 
   pip install psycopg2 pgcli && \
 

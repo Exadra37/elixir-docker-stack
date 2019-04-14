@@ -8,9 +8,9 @@ Main()
   # EXECUTION
   ##############################################################################
 
-    apt install -y --no-install-recommends inotify-tools
-
-    printf "fs.inotify.max_user_watches=524288\n" > /etc/sysctl.d/01-inotify.conf
+    apt install -y --no-install-recommends \
+      libcanberra-gtk3-module \
+      firefox-esr
 }
 
-Main
+Main "${@}"

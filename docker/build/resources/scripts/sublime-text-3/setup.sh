@@ -2,6 +2,7 @@
 
 set -eu
 
+
 Main()
 {
   ################################################################################
@@ -24,9 +25,6 @@ Main()
   # EXECUTION
   ################################################################################
 
-    mkdir -p "${home_dir}"/bin
-
-    cp -v "${SCRIPT_DIR}"/bin/elixir-ls "${home_dir}"/bin/elixir-ls
 
     mkdir -p "${SUBLIME_PACKAGES_DIR}"/User
 
