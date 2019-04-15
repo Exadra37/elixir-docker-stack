@@ -329,7 +329,7 @@ set -eu
         background_mode="-it"
 
         node_address="$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -i")"
-        APP_NODE_NAME="${APP_NAME}@$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -i")"
+        APP_NODE_NAME="${APP_NAME}@${node_address}"
 
         CONTAINER_NAME="observer_${APP_NAME}"
 
@@ -342,17 +342,21 @@ set -eu
         #
         # http://jbavari.github.io/blog/2016/03/11/using-erlang-observer-on-a-remote-elixir-server/
         #run_command="erl -sname observer -hidden -setcookie ${remote_cookie} -run observer"
-        #run_command="/home/observer/workspace/iex.sh ${node_address} ${ELIXIR_NODE_COOKIE} ${APP_NAME}"
-        #run_command="/home/observer/workspace/iex.sh"
-
-        run_command=zsh
         #run_command="iex --name observer --cookie ${ELIXIR_NODE_COOKIE} -e 'Node.connect(:\"${APP_NODE_NAME}\"); :observer.start()'"
+        run_command="resize && /home/observer/workspace/iex.sh ${APP_NAME} ${node_address} ${ELIXIR_NODE_COOKIE}"
 
         ;;
+
+
 
       observer-cli )
         shift 1
         remote_shell="${1:-${APP_NODE_NAME}}"
+
+        if [ "$#" -ge 1 ]; then
+          shift 1
+        fi
+
         dockerfile="observer-debian"
         port_map="9998:4000"
         CONTAINER_USER="observer"
@@ -366,9 +370,6 @@ set -eu
         #  * https://chazsconi.github.io/2017/04/22/observing-remote-elixir-docker-nodes.html
         #run_command="observer_cli elixir@b09b4f769088 ${ELIXIR_NODE_COOKIE}"
 
-        if [ "$#" -ge 1 ]; then
-          shift 1
-        fi
         ;;
 
       observer-shell )
