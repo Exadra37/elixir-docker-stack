@@ -16,9 +16,9 @@ set -eu
       local example_suffix="${2:--example}"
 
 
-    ##############################################################################
+    ############################################################################
     # EXECUTION
-    ##############################################################################
+    ############################################################################
 
       # Useful to pass environment variables into the container.
       if [ ! -f .env"${suffix}" ]; then
@@ -41,12 +41,12 @@ set -eu
   {
     local _elixir_version="${1? Missing Elixir Version!!!}"
     local _phoenix_version="${2? Missing Phoenix version!!!}"
-    local _dockerfile="${3? Missing variant for docker image!!!}"
+    local dockerfile="${3? Missing variant for docker image!!!}"
 
-    if [ "${_dockerfile}" = "observer-debian" ]; then
+    if [ "${dockerfile}" = "observer-debian" ]; then
       echo "${_elixir_version}"
     else
-      echo "${_elixir_version}-${_phoenix_version}-${_dockerfile}"
+      echo "${_elixir_version}-${_phoenix_version}-${dockerfile}"
     fi
   }
 
@@ -61,25 +61,33 @@ set -eu
 
   Build_Docker_Image()
   {
-    local _image_name="${1? Missing docker image name!!!}"
-    local _dockerfile="${2? Missing variant for docker image!!!}"
-    local _elixir_version="${3? Missing Elixir version!!!}"
-    local _phoenix_version="${4? Missing Phoenix version!!!}"
-    local _phoenix_install_from="${5? Missing Phoenix install command!!!}"
-    local _build_path="${6? Missing build path for docker image!!!}"
+    ############################################################################
+    # INPUT
+    ############################################################################
 
-    if [ "${_dockerfile}" = "observer-debian" ]; then
-      printf "\nDOCKERFILE: $_dockerfile \n"
-      local _image_name=exadra37/observer
-      local _elixir_version=latest
-    fi
+      local image_name="${1? Missing docker image name!!!}"
+      local dockerfile="${2? Missing variant for docker image!!!}"
+      local _elixir_version="${3? Missing Elixir version!!!}"
+      local _phoenix_version="${4? Missing Phoenix version!!!}"
+      local _phoenix_install_from="${5? Missing Phoenix install command!!!}"
+      local _build_path="${6? Missing build path for docker image!!!}"
 
-    local _tag="$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_dockerfile}" )"
-    local _docker_image="${_image_name}:${_tag}"
 
-    local _dockerfile_path="${_build_path}"/${_dockerfile}".Dockerfile"
+    ############################################################################
+    # VARS
+    ############################################################################
 
-    printf "\n---> BUILDING FROM DOCKERFILE: ${_dockerfile_path}\n"
+      if [ "${dockerfile}" = "observer-debian" ]; then
+        local image_name=exadra37/observer
+        local _elixir_version=latest
+      fi
+
+      local tag="$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${dockerfile}" )"
+      local _docker_image="${image_name}:${tag}"
+
+      local dockerfile_path="${_build_path}"/${dockerfile}".Dockerfile"
+
+    printf "\n---> BUILDING FROM DOCKERFILE: ${dockerfile_path}\n"
 
     printf "\n---> DOCKER IMAGE: ${_docker_image}\n"
 
@@ -89,7 +97,7 @@ set -eu
       --no-cache \
       --force-rm \
       --pull \
-      --file "${_dockerfile_path}" \
+      --file "${dockerfile_path}" \
       --build-arg "ELIXIR_VERSION=${_elixir_version}" \
       --build-arg "PHOENIX_VERSION=${_phoenix_version}" \
       --build-arg "PHOENIX_INSTALL_FROM=${_phoenix_install_from}" \
@@ -99,10 +107,10 @@ set -eu
 
   Start_Docker_Container()
   {
-    local _image_name="${1? Missing docker image name!!!}"
+    local image_name="${1? Missing docker image name!!!}"
     local _elixir_version="${2? Missing Elixir version!!!}"
     local _phoenix_version="${3? Missing Phoenix version!!!}"
-    local _dockerfile="${4? Missing docker image variant!!!}"
+    local dockerfile="${4? Missing docker image variant!!!}"
     local _app_name="${5? Missing the APP name!!!}"
     local _container_name="${6? Missing container name!!!}"
     local _container_user="${7? Missing container user!!!}"
@@ -112,12 +120,12 @@ set -eu
 
     shift 10
 
-    if [ "${_dockerfile}" = "observer-debian" ]; then
-      _image_name=exadra37/observer
+    if [ "${dockerfile}" = "observer-debian" ]; then
+      image_name=exadra37/observer
       _elixir_version=latest
     fi
 
-    local _tag="$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_dockerfile}" )"
+    local tag="$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${dockerfile}" )"
 
     if sudo docker container ls -a | grep -q "${_container_name}" -; then
 
@@ -143,7 +151,7 @@ set -eu
       exit 0
     fi
 
-    local _docker_image="${_image_name}:${_tag}"
+    local _docker_image="${image_name}:${tag}"
 
     # Setup X11 server authentication
     # @link http://wiki.ros.org/docker/Tutorials/GUI#The_isolated_way
@@ -172,9 +180,9 @@ set -eu
       --network observer \
       --publish "127.0.0.1:${port_map}" \
       --volume "${PWD}":/home/"${_container_user}"/workspace \
-      --volume "${_container_name}_${_tag}_var_lib_postgresql":/var/lib/postgresql \
-      --volume "${_container_name}_${_tag}_var_log_postgresql":/var/log/postgresql \
-      --volume "${_container_name}_${_tag}_config_sublime_text_3":/home/"${_container_user}"/.config/sublime-text-3 \
+      --volume "${_container_name}_${tag}_var_lib_postgresql":/var/lib/postgresql \
+      --volume "${_container_name}_${tag}_var_log_postgresql":/var/log/postgresql \
+      --volume "${_container_name}_${tag}_config_sublime_text_3":/home/"${_container_user}"/.config/sublime-text-3 \
       --volume="${_xsock}":"${_xsock}":ro \
       --volume="${_xauth}":"${_xauth}":ro \
       --env="XAUTHORITY=${_xauth}" \
