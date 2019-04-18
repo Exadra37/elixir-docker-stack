@@ -39,14 +39,14 @@ set -eu
 
   Get_Docker_Image_Tag()
   {
-    local _elixir_version="${1? Missing Elixir Version!!!}"
-    local _phoenix_version="${2? Missing Phoenix version!!!}"
+    local elixir_version="${1? Missing Elixir Version!!!}"
+    local phoenix_version="${2? Missing Phoenix version!!!}"
     local dockerfile="${3? Missing variant for docker image!!!}"
 
     if [ "${dockerfile}" = "observer-debian" ]; then
-      echo "${_elixir_version}"
+      echo "${elixir_version}"
     else
-      echo "${_elixir_version}-${_phoenix_version}-${dockerfile}"
+      echo "${elixir_version}-${phoenix_version}-${dockerfile}"
     fi
   }
 
@@ -67,8 +67,8 @@ set -eu
 
       local image_name="${1? Missing docker image name!!!}"
       local dockerfile="${2? Missing variant for docker image!!!}"
-      local _elixir_version="${3? Missing Elixir version!!!}"
-      local _phoenix_version="${4? Missing Phoenix version!!!}"
+      local elixir_version="${3? Missing Elixir version!!!}"
+      local phoenix_version="${4? Missing Phoenix version!!!}"
       local _phoenix_install_from="${5? Missing Phoenix install command!!!}"
       local _build_path="${6? Missing build path for docker image!!!}"
 
@@ -79,10 +79,10 @@ set -eu
 
       if [ "${dockerfile}" = "observer-debian" ]; then
         local image_name=exadra37/observer
-        local _elixir_version=latest
+        local elixir_version=latest
       fi
 
-      local tag="$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${dockerfile}" )"
+      local tag="$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
       local _docker_image="${image_name}:${tag}"
 
       local dockerfile_path="${_build_path}"/${dockerfile}".Dockerfile"
@@ -98,8 +98,8 @@ set -eu
       --force-rm \
       --pull \
       --file "${dockerfile_path}" \
-      --build-arg "ELIXIR_VERSION=${_elixir_version}" \
-      --build-arg "PHOENIX_VERSION=${_phoenix_version}" \
+      --build-arg "ELIXIR_VERSION=${elixir_version}" \
+      --build-arg "PHOENIX_VERSION=${phoenix_version}" \
       --build-arg "PHOENIX_INSTALL_FROM=${_phoenix_install_from}" \
       --tag ${_docker_image} \
       "${_build_path}"
@@ -108,8 +108,8 @@ set -eu
   Start_Docker_Container()
   {
     local image_name="${1? Missing docker image name!!!}"
-    local _elixir_version="${2? Missing Elixir version!!!}"
-    local _phoenix_version="${3? Missing Phoenix version!!!}"
+    local elixir_version="${2? Missing Elixir version!!!}"
+    local phoenix_version="${3? Missing Phoenix version!!!}"
     local dockerfile="${4? Missing docker image variant!!!}"
     local _app_name="${5? Missing the APP name!!!}"
     local _container_name="${6? Missing container name!!!}"
@@ -122,10 +122,10 @@ set -eu
 
     if [ "${dockerfile}" = "observer-debian" ]; then
       image_name=exadra37/observer
-      _elixir_version=latest
+      elixir_version=latest
     fi
 
-    local tag="$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${dockerfile}" )"
+    local tag="$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
 
     if sudo docker container ls -a | grep -q "${_container_name}" -; then
 
