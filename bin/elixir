@@ -124,12 +124,7 @@ set -eu
     if [ "${_dockerfile}" = "observer-debian" ]; then
       _image_name=exadra37/observer
       _elixir_version=latest
-      #_app_hostname="${_app_name}.observer"
-    #else
-      #_app_hostname="${_app_name}.app"
     fi
-
-    #local _app_node_name=
 
     local _tag="$( Get_Docker_Image_Tag "${_elixir_version}" "${_phoenix_version}" "${_dockerfile}" )"
 
@@ -137,7 +132,7 @@ set -eu
 
       printf "\n---> ATTACHING TO CONTAINER: ${_container_name}\n"
 
-      printf "\n---> COMMAND TO RUN: ${_run_command}\n\n"
+      printf "\n---> INVOKED COMMAND: ${_run_command}\n\n"
 
       #local _app_node_name="${_app_name}@$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -i")"
 
@@ -342,8 +337,6 @@ set -eu
         #   * https://chazsconi.github.io/2017/04/22/observing-remote-elixir-docker-nodes.html
         #
         # http://jbavari.github.io/blog/2016/03/11/using-erlang-observer-on-a-remote-elixir-server/
-        #run_command="erl -sname observer -hidden -setcookie ${remote_cookie} -run observer"
-        #run_command="iex --name observer --cookie ${ELIXIR_NODE_COOKIE} -e 'Node.connect(:\"${APP_NODE_NAME}\"); :observer.start()'"
         run_command="observer ${APP_NAME} ${CONTAINER_IP_ADDRESS} ${ELIXIR_NODE_COOKIE}"
 
         ;;
@@ -366,8 +359,17 @@ set -eu
         CONTAINER_USER="observer"
         CONTAINER_NAME="observer_${APP_NAME}"
 
-        #run_command="iex --name observer_cli@174.02.0.3 --cookie ${ELIXIR_NODE_COOKIE} --remsh ${remote_shell} -e ':observer_cli.start()'"
-        run_command="/home/observer/workspace/obscli/cli.sh"
+        run_command="iex --name observer_cli@174.02.0.3 --cookie ${ELIXIR_NODE_COOKIE} --remsh ${remote_shell}"
+
+        cat <<-HEREDOC
+
+        #############################################################
+        #                                                           #
+        #     iex(remote-shell@172.24.02)> observer_cli.start()     #
+        #                                                           #
+        #############################################################
+
+HEREDOC
 
         # TODO:
         #  * observer_cli binary seems not be able to connect to the remote node
