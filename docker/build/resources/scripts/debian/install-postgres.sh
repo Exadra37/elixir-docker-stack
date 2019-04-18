@@ -19,7 +19,7 @@ Main()
 
     printf "\n>>> INSTALL POSTGRES VERSION: ${postgres_version} <<< \n"
 
-    apt install -y --no-install-recommends \
+    apt install -y -q --no-install-recommends \
         apt-transport-https \
         ca-certificates \
         gnupg2
@@ -33,7 +33,7 @@ Main()
     #apt-key adv --fetch-keys https://www.postgresql.org/media/keys/ACCC4CF8.asc
 
     apt update
-    apt install -y --no-install-recommends postgresql-"${postgres_version}"
+    apt install -y -q --no-install-recommends postgresql-"${postgres_version}"
 
     adduser "${user_name}" postgres
 

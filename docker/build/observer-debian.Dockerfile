@@ -13,11 +13,13 @@ ENV DEBIAN_FRONTEND="noninteractive" \
   DISPLAY=${DISPLAY} \
   CONTAINER_USER_NAME="${CONTAINER_USER_NAME}" \
   CONTAINER_HOME="/home/${CONTAINER_USER_NAME}" \
+  CONTAINER_BIN_PATH="/home/${CONTAINER_USER_NAME}/bin" \
   CONTAINER_UID=${CONTAINER_UID} \
   CONTAINER_GID=${CONTAINER_GID} \
   RESOURCES_DIR=/docker-build-resources \
   WORKSPACE_PATH="/home/${CONTAINER_USER_NAME}/workspace"
 
+ENV PATH="${CONTAINER_BIN_PATH}":${PATH}
 
 COPY ./resources /docker-build-resources
 
@@ -29,7 +31,11 @@ RUN apt update && \
 
   useradd -m -u "${CONTAINER_UID}" -s /usr/bin/zsh "${CONTAINER_USER_NAME}" && \
 
+  chown --recursive "${CONTAINER_USER_NAME}":"${CONTAINER_USER_NAME}" "${RESOURCES_DIR}" && \
+
   su "${CONTAINER_USER_NAME}" -c "sh -c 'mkdir -p ${CONTAINER_HOME}/.local/share'" && \
+  su "${CONTAINER_USER_NAME}" -c "sh -c 'mkdir -p ${CONTAINER_BIN_PATH}'" && \
+  su "${CONTAINER_USER_NAME}" -c "sh -c 'cp -r ${RESOURCES_DIR}/scripts/elixir/bin/observer ${CONTAINER_BIN_PATH}'" && \
 
   "${RESOURCES_DIR}"/scripts/install-oh-my-zsh.sh \
     "${CONTAINER_HOME}" \

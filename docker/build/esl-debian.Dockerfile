@@ -1,6 +1,9 @@
-ARG ELIXIR_VERSION=1.8-slim
+ARG OS_TAG=slim
 
-FROM elixir:${ELIXIR_VERSION}
+FROM debian:${OS_TAG}
+
+ARG ERLANG_VERSION=21.3.3
+ARG ELIXIR_VERSION=1.8.1-2
 
 ARG CONTAINER_USER_NAME="elixir"
 ARG CONTAINER_UID="1000"
@@ -40,8 +43,6 @@ ENV DEBIAN_FRONTEND="noninteractive" \
 
 ENV PATH="${CONTAINER_BIN_PATH}":"${POSTGRES_BIN_PATH}":${PATH}
 
-COPY ./resources /docker-build-resources
-
 RUN apt update && \
   apt -y upgrade && \
   apt -y -q install --no-install-recommends \
@@ -50,6 +51,7 @@ RUN apt update && \
     curl \
     less \
     git && \
+
   apt -y -f install && \
 
   useradd -m -u "${CONTAINER_UID}" -s /usr/bin/zsh "${CONTAINER_USER_NAME}" && \
@@ -59,7 +61,13 @@ RUN apt update && \
   su "${CONTAINER_USER_NAME}" -c "sh -c 'mkdir -p ${CONTAINER_BIN_PATH}'" && \
   su "${CONTAINER_USER_NAME}" -c "sh -c 'cp -r ${RESOURCES_DIR}/scripts/elixir/bin/* ${CONTAINER_BIN_PATH}'" && \
 
-  "${RESOURCES_DIR}"/scripts/elixir/observer/fix-dependencies.sh && \
+  curl -o esl.deb https://packages.erlang-solutions.com/erlang/esl-erlang/FLAVOUR_1_general/esl-erlang_"${ERLANG_VERSION}"-1~debian~stretch_amd64.deb && \
+  dpkg -i esl.deb && \
+  rm -f esl.deb && \
+
+  curl -o elixir.deb https://packages.erlang-solutions.com/erlang/elixir/FLAVOUR_2_download/elixir_"${ELIXIR_VERSION}"-2~debian~stretch_amd64.deb && \
+  dpkg -i elixir.deb && \
+  rm -f elixir.deb && \
 
   "${RESOURCES_DIR}"/scripts/debian/install-nodejs.sh "${NODE_VERSION}" && \
 
@@ -97,14 +105,12 @@ RUN apt update && \
 
 USER "${CONTAINER_USER_NAME}"
 
-WORKDIR "${CONTAINER_HOME}"
-
 RUN "${RESOURCES_DIR}"/scripts/setup-postgres.sh "11" "postgres" "postgres" && \
-  "${RESOURCES_DIR}"/scripts/elixir/phoenix/install.sh "${PHOENIX_INSTALL_FROM}"
-  # "${RESOURCES_DIR}"/scripts/sublime-text-3/elixir/language-server-protocol/install.sh \
-  #   "${CONTAINER_HOME}" \
-  #   "${ELIXIR_VERSION}" \
-  #   "${RESOURCES_DIR}"
+  "${RESOURCES_DIR}"/scripts/elixir/phoenix/install.sh "${PHOENIX_INSTALL_FROM}" &&  \
+  "${RESOURCES_DIR}"/scripts/sublime-text-3/elixir/language-server-protocol/install.sh \
+    "${CONTAINER_HOME}" \
+    "${ELIXIR_VERSION}" \
+    "${RESOURCES_DIR}"
 
 VOLUME ["/var/log/postgresql", "/var/lib/postgresql", "/home/elixir/.config/sublime-text-3"]
 

@@ -8,18 +8,16 @@ Main()
   # INPUT
   ##############################################################################
 
-    local localization=${1? Missing localization for Locales !!!}
-    local encoding=${2? Missing encoding for Locales !!!}
+    local node_version="${1? Missing node version!!!}"
 
 
   ##############################################################################
   # EXECUTION
   ##############################################################################
 
-    apt install -y -q --no-install-recommends locales
+    curl -sL https://deb.nodesource.com/setup_"${node_version}".x | sh -
 
-    echo "${localization} ${encoding}" > /etc/locale.gen
-    locale-gen "${encoding}"
+    apt install -y -q --no-install-recommends nodejs
 }
 
 Main "${@}"

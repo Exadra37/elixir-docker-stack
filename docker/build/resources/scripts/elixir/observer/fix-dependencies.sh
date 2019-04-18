@@ -57,8 +57,8 @@ Main()
     #   libglu1-mesa-dev \
     #   libpng-dev
 
-    # apt install -y --no-install-recommends \
-    #   erlang-wx
+    apt install -y -q --no-install-recommends \
+      erlang-wx
 
     #apt purge -y --auto-remove $buildDeps
 

@@ -73,7 +73,7 @@ Main()
 
       printf "\n---> APT will be used to install Sublime for build: ${sublime_build} \n"
 
-      apt install -y --no-install-recommends \
+      apt install -y -q --no-install-recommends \
         apt-transport-https \
         ca-certificates
 

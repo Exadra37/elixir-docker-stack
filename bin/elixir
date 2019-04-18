@@ -7,8 +7,8 @@ set -eu
 ################################################################################
 
   image_name=exadra37/elixir-phoenix
-  dockerfile=alpine
-  elixir_version=1.8
+  dockerfile=debian
+  elixir_version=1.8-slim
   phoenix_version=1.4.0
   run_command=elixir
   build_path=~/bin/vendor/exadra37-docker/elixir/dev-cli/docker/build
@@ -38,6 +38,13 @@ set -eu
 ################################################################################
 # FUNCTIONS
 ################################################################################
+
+  Get_Container_Ip_Address()
+  {
+    local _container_name="${1? Missing container name!!!}"
+
+    echo -n $( sudo docker exec -it ${_container_name} sh -c 'echo -n $(hostname -i)' )
+  }
 
   function Get_Docker_Image_Tag
   {
@@ -84,6 +91,8 @@ set -eu
     printf "\n---> BUILDING FROM DOCKERFILE: ${_dockerfile_path}\n"
 
     printf "\n---> DOCKER IMAGE: ${_docker_image}\n"
+
+    printf "\n---> INTALL PHOENIX: ${_phoenix_install_from}\n"
 
     sudo docker build \
       --no-cache \
@@ -150,8 +159,6 @@ set -eu
 
     local _docker_image="${_image_name}:${_tag}"
 
-
-
     # Setup X11 server authentication
     # @link http://wiki.ros.org/docker/Tutorials/GUI#The_isolated_way
     local _xauth_display=":0"
@@ -164,14 +171,9 @@ set -eu
 
     printf "\n---> CONTAINER USER: ${_container_user}\n"
 
-    #printf "\n---> COMMAND TO RUN: ${run_command}\n\n"
+    printf "\n---> COMMAND TO RUN: ${run_command}\n\n"
 
     sudo docker network create observer &> /dev/null || true
-
-    #--volume /usr/share/icons:/usr/share/icons:ro \
-    #--device /dev/dri \
-    # --hostname "${_app_hostname}" \
-    #--env "APP_NODE_NAME=${APP_NODE_NAME}" \
 
     sudo docker run \
       --rm \
@@ -191,7 +193,7 @@ set -eu
       --volume="${_xauth}":"${_xauth}":ro \
       --env="XAUTHORITY=${_xauth}" \
       "${_docker_image}" \
-      sh -c "${_run_command}" #${@}
+      ${_run_command} ${@}
   }
 
 
@@ -316,7 +318,6 @@ set -eu
 
       observer )
         shift 1
-        #remote_sname="${2? Missing name of the node we want to connect to!!!}"
         remote_cookie="${1:-${ELIXIR_NODE_COOKIE}}"
 
         if [ "$#" -ge 1 ]; then
@@ -328,11 +329,11 @@ set -eu
         CONTAINER_USER="observer"
         background_mode="-it"
 
-        node_address="$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -i")"
-        APP_NODE_NAME="${APP_NAME}@${node_address}"
+        CONTAINER_IP_ADDRESS=$( Get_Container_Ip_Address "${CONTAINER_NAME}" )
+
+        APP_NODE_NAME="${APP_NAME}@${CONTAINER_IP_ADDRESS}"
 
         CONTAINER_NAME="observer_${APP_NAME}"
-
 
         # to implement over ssh tunnel:
         #   * https://sgeos.github.io/elixir/erlang/observer/2016/09/16/elixir_erlang_running_otp_observer_remotely.html
@@ -343,14 +344,17 @@ set -eu
         # http://jbavari.github.io/blog/2016/03/11/using-erlang-observer-on-a-remote-elixir-server/
         #run_command="erl -sname observer -hidden -setcookie ${remote_cookie} -run observer"
         #run_command="iex --name observer --cookie ${ELIXIR_NODE_COOKIE} -e 'Node.connect(:\"${APP_NODE_NAME}\"); :observer.start()'"
-        run_command="resize && /home/observer/workspace/iex.sh ${APP_NAME} ${node_address} ${ELIXIR_NODE_COOKIE}"
+        run_command="observer ${APP_NAME} ${CONTAINER_IP_ADDRESS} ${ELIXIR_NODE_COOKIE}"
 
         ;;
 
-
-
       observer-cli )
         shift 1
+
+        CONTAINER_IP_ADDRESS=$( Get_Container_Ip_Address "${CONTAINER_NAME}" )
+
+        APP_NODE_NAME="${APP_NAME}@${CONTAINER_IP_ADDRESS}"
+
         remote_shell="${1:-${APP_NODE_NAME}}"
 
         if [ "$#" -ge 1 ]; then
@@ -362,7 +366,8 @@ set -eu
         CONTAINER_USER="observer"
         CONTAINER_NAME="observer_${APP_NAME}"
 
-        run_command="iex --sname observer_cli --hidden --cookie ${ELIXIR_NODE_COOKIE} --remsh ${remote_shell}"
+        #run_command="iex --name observer_cli@174.02.0.3 --cookie ${ELIXIR_NODE_COOKIE} --remsh ${remote_shell} -e ':observer_cli.start()'"
+        run_command="/home/observer/workspace/obscli/cli.sh"
 
         # TODO:
         #  * observer_cli binary seems not be able to connect to the remote node
@@ -373,14 +378,13 @@ set -eu
         ;;
 
       observer-shell )
-        APP_NODE_NAME="${APP_NAME}@$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -i")"
+        APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${CONTAINER_NAME} )"
 
         dockerfile="observer-debian"
         port_map="9997:4000"
         CONTAINER_USER="observer"
         CONTAINER_NAME="observer_${APP_NAME}"
         run_command=zsh
-
 
         shift 1
         ;;
@@ -393,14 +397,13 @@ set -eu
           shift 1
         fi
 
-        #node_address="$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -f")"
-
-        APP_NODE_NAME="${APP_NAME}@$(sudo docker exec -it ${CONTAINER_NAME} sh -c "hostname -i")"
+        APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${CONTAINER_NAME} )"
 
         # we need to set the --cookie and -sname in order to be able to use the
         # Observer from another docker container in the same docker network.
+        #run_command="mix phoenix.server"
         #run_command="elixir --cookie ${ELIXIR_NODE_COOKIE} --name '${APP_NODE_NAME}' -S mix ${1:-phx.server}"
-        run_command="/home/elixir/workspace/elixir.sh ${APP_NAME} ${ELIXIR_NODE_COOKIE} ${phoenix_command}"
+        run_command="elixir-server ${APP_NAME} ${ELIXIR_NODE_COOKIE} ${phoenix_command}"
 
         ;;
 
