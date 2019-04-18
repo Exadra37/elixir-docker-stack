@@ -6,6 +6,30 @@ set -eu
 # FUNCTIONS
 ################################################################################
 
+  Create_Env_File_If_Not_Exists()
+  {
+    ############################################################################
+    # INPUT
+    ############################################################################
+
+      local suffix="${1:-.docker-container}"
+      local example_suffix="${2:--example}"
+
+
+    ##############################################################################
+    # EXECUTION
+    ##############################################################################
+
+      # Useful to pass environment variables into the container.
+      if [ ! -f .env"${suffix}" ]; then
+        if [ -f .env"${suffix}${example_suffix}" ]; then
+          cp .env"${suffix}${example_suffix}" .env"${suffix}"
+        else
+          touch .env"${suffix}"
+        fi
+      fi
+  }
+
   Get_Container_Ip_Address()
   {
     local _container_name="${1? Missing container name!!!}"
@@ -140,7 +164,7 @@ set -eu
     sudo docker run \
       --rm \
       "${_background_mode}" \
-      --env-file .env \
+      --env-file .env.docker-container \
       --env "APP_NODE_NAME=${APP_NODE_NAME}" \
       --env "APP_NODE_COOKIE=${ELIXIR_NODE_COOKIE}" \
       --name "${_container_name}" \
@@ -177,6 +201,8 @@ set -eu
       background_mode="-it"
       port_map="4000:4000"
       elixir_host_dir="${PWD}"/.local
+      env_file_suffix=".docker-container"
+      env_file_example_suffix="-example"
 
       # We can override any of the above variables in the .env.elixir-docker-stack file
       #   for the current project we are working on.
@@ -221,6 +247,8 @@ set -eu
     ################################################################################
 
       mkdir -p "${elixir_host_dir}"
+
+      Create_Env_File_If_Not_Exists "${env_file_suffix}" "${env_file_example_suffix}"
 
       for argument in "${@}"; do
         case "${argument}" in
@@ -428,33 +456,9 @@ HEREDOC
       done
 
 
-    ################################################################################
+    ############################################################################
     # EXECUTION
-    ################################################################################
-
-      if [ ! -f .env ]; then
-        if [ -f .env.example ]; then
-          cp .env.example .env
-        else
-          touch .env
-        fi
-      fi
-
-      # if sudo docker container ls -a | grep -q "${CONTAINER_NAME}" -; then
-
-      #   printf "\n---> ATTACHING TO CONTAINER: ${CONTAINER_NAME}\n"
-
-      #   printf "\n---> COMMAND TO RUN: ${run_command}\n\n"
-
-      #   sudo docker exec --user ${CONTAINER_USER} ${background_mode} ${CONTAINER_NAME} ${run_command} ${@}
-
-
-      #   # if [ "${background_mode}" == "-it" ]; then
-      #   #   sudo docker stop "${CONTAINER_NAME}"
-      #   # fi
-
-      #   exit 0
-      # fi
+    ############################################################################
 
       Start_Docker_Container \
         "${image_name}" \
@@ -468,7 +472,6 @@ HEREDOC
         "${run_command}" \
         "${elixir_host_dir}" \
         "${@}"
-
   }
 
 Main "${@}"
