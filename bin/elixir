@@ -3,39 +3,6 @@
 set -eu
 
 ################################################################################
-# ENV
-################################################################################
-
-  image_name=exadra37/elixir-phoenix
-  dockerfile=debian
-  elixir_version=1.8-slim
-  phoenix_version=1.4.0
-  run_command=elixir
-  build_path=~/bin/vendor/exadra37-docker/elixir/dev-cli/docker/build
-  background_mode="-it"
-  port_map="4000:4000"
-  elixir_host_dir="${PWD}"/.local
-
-  # We can override any of the above variables in the .env.elixir-docker-stack file
-  #   for the current project we are working on.
-  # Bear in mind that some can be override if provided as an argument or option
-  #   to this bash script.
-  if [ -f .env.elixir-docker-stack ]; then
-    source .env.elixir-docker-stack
-  fi
-
-  phoenix_install_from="hex phx_new ${phoenix_version}"
-
-  # from 1.4.0 assigns 1.4
-  version="${phoenix_version%.*}"
-
-  # Phoenix framework installation procedure changed from 1.4 onwards.
-  if [ "${version}" \< "1.4" ]; then
-    phoenix_install_from="https://github.com/phoenixframework/archives/raw/master/phx_new-${phoenix_version}.ez"
-  fi
-
-
-################################################################################
 # FUNCTIONS
 ################################################################################
 
@@ -46,7 +13,7 @@ set -eu
     echo -n $( sudo docker exec -it ${_container_name} sh -c 'echo -n $(hostname -i)' )
   }
 
-  function Get_Docker_Image_Tag
+  Get_Docker_Image_Tag()
   {
     local _elixir_version="${1? Missing Elixir Version!!!}"
     local _phoenix_version="${2? Missing Phoenix version!!!}"
@@ -59,7 +26,7 @@ set -eu
     fi
   }
 
-  function Create_Docker_Volume
+  Create_Docker_Volume()
   {
     local _container_name="${1? Missing container name!!!}"
 
@@ -68,7 +35,7 @@ set -eu
     sudo docker volume create "${_container_name}"
   }
 
-  function Build_Docker_Image
+  Build_Docker_Image()
   {
     local _image_name="${1? Missing docker image name!!!}"
     local _dockerfile="${2? Missing variant for docker image!!!}"
@@ -106,7 +73,7 @@ set -eu
       "${_build_path}"
   }
 
-  function Start_Docker_Container
+  Start_Docker_Container()
   {
     local _image_name="${1? Missing docker image name!!!}"
     local _elixir_version="${2? Missing Elixir version!!!}"
@@ -191,275 +158,317 @@ set -eu
       ${_run_command} ${@}
   }
 
-
 ################################################################################
-# CONSTANTS
-################################################################################
-
-  # from `/home/username/developer/acme` we will get `developer/acme`
-  CURRENT_PATH="${PWD#*${USER}/}"
-
-  APP_NAME="${CURRENT_PATH//\//_}"
-
-  APP_NODE_NAME=""
-
-  # from `developer/acme` we get `developer_acme`
-  CONTAINER_NAME="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
-
-  CONTAINER_USER=elixir
-
-  ELIXIR_NODE_COOKIE="super-long-secret-cookie"
-
-
-################################################################################
-# PARSE INPUT / EXECUTION
+# MAIN
 ################################################################################
 
-  mkdir -p "${elixir_host_dir}"
+  Main()
+  {
+    ################################################################################
+    # ENV
+    ################################################################################
 
-  for argument in "${@}"; do
-    case "${argument}" in
+      image_name=exadra37/elixir-phoenix
+      dockerfile=debian
+      elixir_version=1.8-slim
+      phoenix_version=1.4.0
+      run_command=elixir
+      build_path=~/bin/vendor/exadra37-docker/elixir/dev-cli/docker/build
+      background_mode="-it"
+      port_map="4000:4000"
+      elixir_host_dir="${PWD}"/.local
 
-      --elixir-version )
-        elixir_version="${2? Missing Elixir version!!!}"
-        shift 2
-        ;;
+      # We can override any of the above variables in the .env.elixir-docker-stack file
+      #   for the current project we are working on.
+      # Bear in mind that some can be override if provided as an argument or option
+      #   to this bash script.
+      if [ -f .env.elixir-docker-stack ]; then
+        source .env.elixir-docker-stack
+      fi
 
-      --phoenix-version )
-        phoenix_version="${2? Missing Phoenix version!!!}"
-        shift 2
-        ;;
+      phoenix_install_from="hex phx_new ${phoenix_version}"
 
-      -d | --detached )
-        background_mode="--detach"
-        shift 1
-        ;;
+      # from 1.4.0 assigns 1.4
+      version="${phoenix_version%.*}"
 
-      -it )
-        background_mode="-it"
-        shift 1
-        ;;
+      # Phoenix framework installation procedure changed from 1.4 onwards.
+      if [ "${version}" \< "1.4" ]; then
+        phoenix_install_from="https://github.com/phoenixframework/archives/raw/master/phx_new-${phoenix_version}.ez"
+      fi
 
-      --db | --database )
-        previous_background_mode=${background_mode}
 
-        Create_Docker_Volume "${CONTAINER_NAME}"
+    ################################################################################
+    # CONSTANTS
+    ################################################################################
 
-        run_command="postgres"
-        background_mode="--detach"
-        shift 1
+      # from `/home/username/developer/acme` we will get `developer/acme`
+      CURRENT_PATH="${PWD#*${USER}/}"
 
-        Start_Docker_Container \
-          "${image_name}" \
-          "${elixir_version}" \
-          "${phoenix_version}" \
-          "${dockerfile}" \
-          "${APP_NAME}" \
-          "${CONTAINER_NAME}" \
-          "${CONTAINER_USER}" \
-          "${background_mode}" \
-          "${run_command}" \
-          "${elixir_host_dir}"
+      APP_NAME="${CURRENT_PATH//\//_}"
 
-        background_mode=${previous_background_mode}
-        ;;
+      APP_NODE_NAME=""
 
-      --no-cache )
-        # not implemented yet
-        ;;
+      # from `developer/acme` we get `developer_acme`
+      CONTAINER_NAME="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
 
-      -p | --publish )
-        port_map=${2? Missing host port map for the container, eg: 3000:3000 !!!}
-        shift 2
-        ;;
+      CONTAINER_USER=elixir
 
-      -u | --user )
-        CONTAINER_USER=${2? Missing user for container!!!}
-        shift 2
-        ;;
+      ELIXIR_NODE_COOKIE="super-long-secret-cookie"
 
-      --dockerfile )
-        dockerfile="${2? Missing variant for docker image... eg: alpine}"
-        CONTAINER_NAME="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
-        shift 2
-        ;;
 
-      build )
-        Build_Docker_Image \
-          "${image_name}" \
-          "${2:-${dockerfile}}" \
-          "${elixir_version}" \
-          "${phoenix_version}" \
-          "${phoenix_install_from}" \
-          "${build_path}"
+    ################################################################################
+    # PARSE INPUT / EXECUTION
+    ################################################################################
 
-        exit 0
-        ;;
+      mkdir -p "${elixir_host_dir}"
 
-      container-logs )
-        sudo docker logs -f "${CONTAINER_NAME}"
-        exit 0
-        ;;
+      for argument in "${@}"; do
+        case "${argument}" in
 
-      down )
-        sudo docker stop "${CONTAINER_NAME}"
-        exit 0
-        ;;
+          --elixir-version )
+            elixir_version="${2? Missing Elixir version!!!}"
+            shift 2
+            ;;
 
-      iex | mix | pgcli )
-        run_command=${1}
-        shift 1
-        ;;
+          --phoenix-version )
+            phoenix_version="${2? Missing Phoenix version!!!}"
+            shift 2
+            ;;
 
-      observer )
-        shift 1
-        remote_cookie="${1:-${ELIXIR_NODE_COOKIE}}"
+          -d | --detached )
+            background_mode="--detach"
+            shift 1
+            ;;
 
-        if [ "$#" -ge 1 ]; then
-          shift 1
-        fi
+          -it )
+            background_mode="-it"
+            shift 1
+            ;;
 
-        dockerfile="observer-debian"
-        port_map="9999:4000"
-        CONTAINER_USER="observer"
-        background_mode="-it"
+          --db | --database )
+            previous_background_mode=${background_mode}
 
-        CONTAINER_IP_ADDRESS=$( Get_Container_Ip_Address "${CONTAINER_NAME}" )
+            Create_Docker_Volume "${CONTAINER_NAME}"
 
-        APP_NODE_NAME="${APP_NAME}@${CONTAINER_IP_ADDRESS}"
+            run_command="postgres"
+            background_mode="--detach"
+            shift 1
 
-        CONTAINER_NAME="observer_${APP_NAME}"
+            Start_Docker_Container \
+              "${image_name}" \
+              "${elixir_version}" \
+              "${phoenix_version}" \
+              "${dockerfile}" \
+              "${APP_NAME}" \
+              "${CONTAINER_NAME}" \
+              "${CONTAINER_USER}" \
+              "${background_mode}" \
+              "${run_command}" \
+              "${elixir_host_dir}"
 
-        # to implement over ssh tunnel:
-        #   * https://sgeos.github.io/elixir/erlang/observer/2016/09/16/elixir_erlang_running_otp_observer_remotely.html
-        #   * https://github.com/Stratus3D/dotfiles/blob/master/scripts/tools/epmd_port_forwarder
-        #   * https://github.com/Nebo15/k8s-utils
-        #   * https://chazsconi.github.io/2017/04/22/observing-remote-elixir-docker-nodes.html
-        #
-        # http://jbavari.github.io/blog/2016/03/11/using-erlang-observer-on-a-remote-elixir-server/
-        run_command="observer ${APP_NAME} ${CONTAINER_IP_ADDRESS} ${ELIXIR_NODE_COOKIE}"
+            background_mode=${previous_background_mode}
+            ;;
 
-        ;;
+          --no-cache )
+            # not implemented yet
+            ;;
 
-      observer-cli )
-        shift 1
+          -p | --publish )
+            port_map=${2? Missing host port map for the container, eg: 3000:3000 !!!}
+            shift 2
+            ;;
 
-        CONTAINER_IP_ADDRESS=$( Get_Container_Ip_Address "${CONTAINER_NAME}" )
+          -u | --user )
+            CONTAINER_USER=${2? Missing user for container!!!}
+            shift 2
+            ;;
 
-        APP_NODE_NAME="${APP_NAME}@${CONTAINER_IP_ADDRESS}"
+          --dockerfile )
+            dockerfile="${2? Missing variant for docker image... eg: alpine}"
+            CONTAINER_NAME="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
+            shift 2
+            ;;
 
-        remote_shell="${1:-${APP_NODE_NAME}}"
+          build )
+            Build_Docker_Image \
+              "${image_name}" \
+              "${2:-${dockerfile}}" \
+              "${elixir_version}" \
+              "${phoenix_version}" \
+              "${phoenix_install_from}" \
+              "${build_path}"
 
-        if [ "$#" -ge 1 ]; then
-          shift 1
-        fi
+            exit 0
+            ;;
 
-        dockerfile="observer-debian"
-        port_map="9998:4000"
-        CONTAINER_USER="observer"
-        CONTAINER_NAME="observer_${APP_NAME}"
+          container-logs )
+            sudo docker logs -f "${CONTAINER_NAME}"
+            exit 0
+            ;;
 
-        run_command="iex --name observer_cli@174.02.0.3 --cookie ${ELIXIR_NODE_COOKIE} --remsh ${remote_shell}"
+          down )
+            sudo docker stop "${CONTAINER_NAME}"
+            exit 0
+            ;;
 
-        cat <<-HEREDOC
+          iex | mix | pgcli )
+            run_command=${1}
+            shift 1
+            ;;
 
-        #############################################################
-        #                                                           #
-        #     iex(remote-shell@172.24.02)> observer_cli.start()     #
-        #                                                           #
-        #############################################################
+          observer )
+            shift 1
+            remote_cookie="${1:-${ELIXIR_NODE_COOKIE}}"
+
+            if [ "$#" -ge 1 ]; then
+              shift 1
+            fi
+
+            dockerfile="observer-debian"
+            port_map="9999:4000"
+            CONTAINER_USER="observer"
+            background_mode="-it"
+
+            CONTAINER_IP_ADDRESS=$( Get_Container_Ip_Address "${CONTAINER_NAME}" )
+
+            APP_NODE_NAME="${APP_NAME}@${CONTAINER_IP_ADDRESS}"
+
+            CONTAINER_NAME="observer_${APP_NAME}"
+
+            # to implement over ssh tunnel:
+            #   * https://sgeos.github.io/elixir/erlang/observer/2016/09/16/elixir_erlang_running_otp_observer_remotely.html
+            #   * https://github.com/Stratus3D/dotfiles/blob/master/scripts/tools/epmd_port_forwarder
+            #   * https://github.com/Nebo15/k8s-utils
+            #   * https://chazsconi.github.io/2017/04/22/observing-remote-elixir-docker-nodes.html
+            #
+            # http://jbavari.github.io/blog/2016/03/11/using-erlang-observer-on-a-remote-elixir-server/
+            run_command="observer ${APP_NAME} ${CONTAINER_IP_ADDRESS} ${ELIXIR_NODE_COOKIE}"
+
+            ;;
+
+          observer-cli )
+            shift 1
+
+            CONTAINER_IP_ADDRESS=$( Get_Container_Ip_Address "${CONTAINER_NAME}" )
+
+            APP_NODE_NAME="${APP_NAME}@${CONTAINER_IP_ADDRESS}"
+
+            remote_shell="${1:-${APP_NODE_NAME}}"
+
+            if [ "$#" -ge 1 ]; then
+              shift 1
+            fi
+
+            dockerfile="observer-debian"
+            port_map="9998:4000"
+            CONTAINER_USER="observer"
+            CONTAINER_NAME="observer_${APP_NAME}"
+
+            run_command="iex --name observer_cli@174.02.0.3 --cookie ${ELIXIR_NODE_COOKIE} --remsh ${remote_shell}"
+
+            cat <<-HEREDOC
+
+            #############################################################
+            #                                                           #
+            #     iex(remote-shell@172.24.02)> observer_cli.start()     #
+            #                                                           #
+            #############################################################
 
 HEREDOC
 
-        # TODO:
-        #  * observer_cli binary seems not be able to connect to the remote node
-        #   from inside a docker container.
-        #  * https://chazsconi.github.io/2017/04/22/observing-remote-elixir-docker-nodes.html
-        #run_command="observer_cli elixir@b09b4f769088 ${ELIXIR_NODE_COOKIE}"
+            # TODO:
+            #  * observer_cli binary seems not be able to connect to the remote node
+            #   from inside a docker container.
+            #  * https://chazsconi.github.io/2017/04/22/observing-remote-elixir-docker-nodes.html
+            #run_command="observer_cli elixir@b09b4f769088 ${ELIXIR_NODE_COOKIE}"
 
-        ;;
+            ;;
 
-      observer-shell )
-        APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${CONTAINER_NAME} )"
+          observer-shell )
+            APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${CONTAINER_NAME} )"
 
-        dockerfile="observer-debian"
-        port_map="9997:4000"
-        CONTAINER_USER="observer"
-        CONTAINER_NAME="observer_${APP_NAME}"
-        run_command=zsh
+            dockerfile="observer-debian"
+            port_map="9997:4000"
+            CONTAINER_USER="observer"
+            CONTAINER_NAME="observer_${APP_NAME}"
+            run_command=zsh
 
-        shift 1
-        ;;
+            shift 1
+            ;;
 
-      up )
-        shift 1
-        phoenix_command="${1:-phx.server}"
+          up )
+            shift 1
+            phoenix_command="${1:-phx.server}"
 
-        if [ "$#" -ge 1 ]; then
-          shift 1
+            if [ "$#" -ge 1 ]; then
+              shift 1
+            fi
+
+            APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${CONTAINER_NAME} )"
+
+            # we need to set the --cookie and -sname in order to be able to use the
+            # Observer from another docker container in the same docker network.
+            #run_command="mix phoenix.server"
+            #run_command="elixir --cookie ${ELIXIR_NODE_COOKIE} --name '${APP_NODE_NAME}' -S mix ${1:-phx.server}"
+            run_command="elixir-server ${APP_NAME} ${ELIXIR_NODE_COOKIE} ${phoenix_command}"
+
+            ;;
+
+          shell )
+            shift 1
+            run_command=${1:-zsh}
+
+            if [ "$#" -ge 1 ]; then
+              shift 1
+            fi
+
+            ;;
+
+        esac
+      done
+
+
+    ################################################################################
+    # EXECUTION
+    ################################################################################
+
+      if [ ! -f .env ]; then
+        if [ -f .env.example ]; then
+          cp .env.example .env
+        else
+          touch .env
         fi
+      fi
 
-        APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${CONTAINER_NAME} )"
+      # if sudo docker container ls -a | grep -q "${CONTAINER_NAME}" -; then
 
-        # we need to set the --cookie and -sname in order to be able to use the
-        # Observer from another docker container in the same docker network.
-        #run_command="mix phoenix.server"
-        #run_command="elixir --cookie ${ELIXIR_NODE_COOKIE} --name '${APP_NODE_NAME}' -S mix ${1:-phx.server}"
-        run_command="elixir-server ${APP_NAME} ${ELIXIR_NODE_COOKIE} ${phoenix_command}"
+      #   printf "\n---> ATTACHING TO CONTAINER: ${CONTAINER_NAME}\n"
 
-        ;;
+      #   printf "\n---> COMMAND TO RUN: ${run_command}\n\n"
 
-      shell )
-        shift 1
-        run_command=${1:-zsh}
-
-        if [ "$#" -ge 1 ]; then
-          shift 1
-        fi
-
-        ;;
-
-    esac
-  done
+      #   sudo docker exec --user ${CONTAINER_USER} ${background_mode} ${CONTAINER_NAME} ${run_command} ${@}
 
 
-################################################################################
-# EXECUTION
-################################################################################
+      #   # if [ "${background_mode}" == "-it" ]; then
+      #   #   sudo docker stop "${CONTAINER_NAME}"
+      #   # fi
 
-  if [ ! -f .env ]; then
-    if [ -f .env.example ]; then
-      cp .env.example .env
-    else
-      touch .env
-    fi
-  fi
+      #   exit 0
+      # fi
 
-  # if sudo docker container ls -a | grep -q "${CONTAINER_NAME}" -; then
+      Start_Docker_Container \
+        "${image_name}" \
+        "${elixir_version}" \
+        "${phoenix_version}" \
+        "${dockerfile}" \
+        "${APP_NAME}" \
+        "${CONTAINER_NAME}" \
+        "${CONTAINER_USER}" \
+        "${background_mode}" \
+        "${run_command}" \
+        "${elixir_host_dir}" \
+        "${@}"
 
-  #   printf "\n---> ATTACHING TO CONTAINER: ${CONTAINER_NAME}\n"
+  }
 
-  #   printf "\n---> COMMAND TO RUN: ${run_command}\n\n"
-
-  #   sudo docker exec --user ${CONTAINER_USER} ${background_mode} ${CONTAINER_NAME} ${run_command} ${@}
-
-
-  #   # if [ "${background_mode}" == "-it" ]; then
-  #   #   sudo docker stop "${CONTAINER_NAME}"
-  #   # fi
-
-  #   exit 0
-  # fi
-
-  Start_Docker_Container \
-    "${image_name}" \
-    "${elixir_version}" \
-    "${phoenix_version}" \
-    "${dockerfile}" \
-    "${APP_NAME}" \
-    "${CONTAINER_NAME}" \
-    "${CONTAINER_USER}" \
-    "${background_mode}" \
-    "${run_command}" \
-    "${elixir_host_dir}" \
-    "${@}"
+Main "${@}"
