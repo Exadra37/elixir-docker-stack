@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# @link https://elixir-lang.org/getting-started/debugging.html
+# @link https://s3.us-east-2.amazonaws.com/ferd.erlang-in-anger/text.v1.1.0.pdf
+
 set -eu
 
   Show_Help()
@@ -18,28 +21,62 @@ Usage:
 
 Options:
 
-  --elixir-version   The Elixir version to be used for the docker tag, eg: 1.8, 1.8.1-slim .
-  --phoenix-version  The Phoenix version to be installed in the docker image for Elixir. eg: 1.4.3 .
-  -d --detached      Run the docker container detached from the terminal.
+  --elixir-version   The Elixir version to be used for the docker tag,
+                     Defaults to: latest
+
+  --phoenix-version  The Phoenix version to be installed in the docker image.
+                     Defaults to the last release, eg: 1.4.3 .
+
+  -d, --detached     Run the docker container detached from the terminal.
+
   -it                Run the docker container attached to the terminal.
-  --db --database    Starts the container with the Postgres database running.
-  -p --publish       Map the host ports to the docker container ports. eg: 8000:4000 .
-  -u --user          The user we want to run inside the container, eg: 1000
-  --dockerfile       The dockerfile to build the container form, eg: debian
+
+  --db, --database   Starts the container with the Postgres database running.
+
+  -p, --publish      Map the host ports to the docker container ports.
+                     Defaults to: 4000:4000 .
+
+  -u, --user         The user we want to run inside the container,
+                     Defaults to current user, eg: 1000 .
+
+  --dockerfile       The dockerfile to build the container form.
+                     Defaults to: debian .
 
 
 Commands:
-  build              Builds the docker image for the given dodkerfile. Defaults to debian.
-  container-logs
-  down
-  iex
-  mix
-  pgcli
-  observer
-  observer-cli
-  observer-shell
-  up
-  shell
+  build              Builds the docker image for the given dodkerfile.
+                     Defaults to build from: debian .
+                      $ elixir build
+                      $ elixir build alpine
+
+  container-logs     Shows a tail -f of the container logs.
+                      $ elixir xontainer-logs
+
+  down               Stops and removes the running container.
+                      $ elixir down
+
+  iex                The Elixir shell.
+                      $ elixir iex [options] <args>
+
+  mix                The Elixir mix tool.
+                      $ elixir mix [options] <args>
+
+  pgcli              A better shell for Postgres, includes uto-completion.
+                      $ elixir pgcli [options] <args>
+
+  observer           Displays the GUI for Observer.
+                      $ elixir observer
+
+  observer-cli       Observer displayed in the likes og Htop for linux.
+                      $ elixir observer-cli
+
+  up                 Starts the docker stack.
+                      $ elixir up
+                      $ elixir --db up
+
+  shell              A shell enside the container for the docker stack.
+                      $ elixir shell
+                      $ elixir -u 0 shell
 
 HEREDOC
 
