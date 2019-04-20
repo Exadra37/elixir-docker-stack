@@ -21,62 +21,71 @@ Usage:
 
 Options:
 
-  --elixir-version   The Elixir version to be used for the docker tag,
-                     Defaults to: latest
+  -d, --detached            Run the docker container detached from the terminal.
 
-  --phoenix-version  The Phoenix version to be installed in the docker image.
-                     Defaults to the last release, eg: 1.4.3 .
+  --db, --database          Starts the container with the Postgres database up.
 
-  -d, --detached     Run the docker container detached from the terminal.
+  --df, --dockerfile        The dockerfile to build the container form.
+                            Defaults to: debian .
 
-  -it                Run the docker container attached to the terminal.
+  --el, --elixir-tag        The Elixir version to be used for the docker tag,
+                            Defaults to: slim
 
-  --db, --database   Starts the container with the Postgres database running.
+  -it, --interactive-tty    Run the docker container attached to the terminal.
 
-  -p, --publish      Map the host ports to the docker container ports.
-                     Defaults to: 4000:4000 .
+  -p, --publish             Map the host ports to the docker container ports.
+                            Defaults to: 4000:4000 .
 
-  -u, --user         The user we want to run inside the container,
-                     Defaults to current user, eg: 1000 .
+  --pv, --phoenix-version   The Phoenix version to be installed.
+                            Defaults to the last release, eg: 1.4.3 .
 
-  --dockerfile       The dockerfile to build the container form.
-                     Defaults to: debian .
+  -u, --user                The user we want to run inside the container,
+                            Defaults to current user, eg: 1000 .
 
 
 Commands:
-  build              Builds the docker image for the given dodkerfile.
-                     Defaults to build from: debian .
-                      $ elixir build
-                      $ elixir build alpine
+  <no-command>    Runs Elixir inside the container as it would in the host.
+                    $ elixir --help
 
-  container-logs     Shows a tail -f of the container logs.
-                      $ elixir xontainer-logs
+  build           Builds the docker image for the given dodkerfile.
+                  Defaults to build from: debian .
+                    $ elixir build
+                    $ elixir build alpine
 
-  down               Stops and removes the running container.
-                      $ elixir down
+  container-logs  Shows a tail -f of the container logs.
+                    $ elixir container-logs
 
-  iex                The Elixir shell.
-                      $ elixir iex [options] <args>
+  down            Stops and removes the running container.
+                    $ elixir down
 
-  mix                The Elixir mix tool.
-                      $ elixir mix [options] <args>
+  iex             The Elixir IEx shell.
+                    $ elixir iex [options] <args>
 
-  pgcli              A better shell for Postgres, includes uto-completion.
-                      $ elixir pgcli [options] <args>
+  mix             The Elixir mix tool.
+                    $ elixir mix <command> [options] <args>
+                    $ elixir mix help
+                    $ elixir mix new elixir-project
+                    $ elixir mic phx.new phoenix-app
 
-  observer           Displays the GUI for Observer.
-                      $ elixir observer
+  pgcli           A better shell for Postgres, includes uto-completion.
+                    $ elixir pgcli [options] <args>
 
-  observer-cli       Observer displayed in the likes og Htop for linux.
-                      $ elixir observer-cli
+  observer        Starts the Observer GUI from an IEx shell.
+                    $ elixir observer
 
-  up                 Starts the docker stack.
-                      $ elixir up
-                      $ elixir --db up
+  observer-cli    Allows to start from IEx the Observer CLI(like Linux HTOP).
+                    $ elixir observer-cli
 
-  shell              A shell enside the container for the docker stack.
-                      $ elixir shell
-                      $ elixir -u 0 shell
+  up              Starts the Elixir docker stack.
+                    $ elixir up
+                    $ elixir --db up
+                    $ elixir --dockerfile alpine up
+                    $ elixir -it --publish 8000:4000 up
+                    $ elixir --elixir-tag 1.3 --phoenix-version 1.3.4 --db up
+
+  shell           A shell inside the container for the Elixir docker stack.
+                    $ elixir shell
+                    $ elixir -u 0 shell
 
 HEREDOC
 
@@ -86,7 +95,86 @@ HEREDOC
 # FUNCTIONS
 ################################################################################
 
+  Print_Text_With_Label()
+  {
+    ############################################################################
+    # INPUT
+    ############################################################################
 
+      local label_text="${1? Missing label to print!!!}"
+
+      local text="${2? Missing text to print!!!}"
+
+      local verbosity_print_level="${3? Missing verbosity print level!!!}"
+
+      local label_background_color="${4:-42}"
+
+      local text_background_color="${5:-229}"
+
+
+    ############################################################################
+    # EXECUTION
+    ############################################################################
+
+      case "${verbosity_print_level}" in
+        "1" )
+          local label_background_color="40"
+          ;;
+        "2" )
+          local label_background_color="44"
+          ;;
+        "3" )
+          local label_background_color="45"
+          ;;
+        "4" )
+          local label_background_color="46"
+          ;;
+        * )
+          local label_background_color="42"
+      esac
+
+      if [ "${verbosity_print_level}" -le "${VERBOSE_LEVEL}" ]; then
+        printf "\n\e[1;${label_background_color}m ${label_text}:\e[30;48;5;${text_background_color}m ${text} \e[0m \n"
+      fi
+  }
+
+  Print_Text()
+  {
+    ############################################################################
+    # INPUT
+    ############################################################################
+
+      local text="${1? Missing text to print!!!}"
+
+      local verbosity_print_level="${2? Missing verbosity print level!!!}"
+
+      local text_color="${3:-44}"
+
+
+    ############################################################################
+    # EXECUTION
+    ############################################################################
+
+      if [ "${verbosity_print_level}" -le "${VERBOSE_LEVEL}" ]; then
+        printf "\n\e[1;${text_color}m ${text} \e[0m \n"
+      fi
+  }
+
+  Print_Fatal_Error()
+  {
+    ############################################################################
+    # INPUT
+    ############################################################################
+
+      local text="${1? Missing text to print for the Fatal Error!!!}"
+
+
+    ############################################################################
+    # EXECUTION
+    ############################################################################
+
+      printf "\n\e[1;41m FATAL ERROR:\e[30;48;5;229m ${text} \e[0m \n\n"
+  }
 
   Create_Env_File_If_Not_Exists()
   {
@@ -95,6 +183,7 @@ HEREDOC
     ############################################################################
 
       local suffix="${1:-.docker-container}"
+
       local example_suffix="${2:--example}"
 
 
@@ -119,6 +208,7 @@ HEREDOC
     ############################################################################
 
       local host_setup_dir="${1? Missing host setup dir!!!}"
+
       local xauth_display="${2:-:0}"
 
 
@@ -138,6 +228,26 @@ HEREDOC
       xauth nlist "${xauth_display}" | sed -e 's/^..../ffff/' | xauth -f "${xauth}" nmerge -
 
       echo "${xauth}"
+  }
+
+
+################################################################################
+# DOCKER FUNCTIONS
+################################################################################
+
+  Is_Not_Present_Docker_Image()
+  {
+    ############################################################################
+    # INPUT
+    ############################################################################
+
+      local _image_name="${1}"
+
+    ############################################################################
+    # EXECUTION
+    ############################################################################
+
+      [ -z $( sudo docker images -q "${_image_name}" ) ] && return 0 || return 1
   }
 
   Get_Container_Ip_Address()
@@ -162,8 +272,10 @@ HEREDOC
     # INPUT
     ############################################################################
 
-      local elixir_version="${1? Missing Elixir Version!!!}"
+      local elixir_tag="${1? Missing Elixir Version!!!}"
+
       local phoenix_version="${2? Missing Phoenix version!!!}"
+
       local dockerfile="${3? Missing variant for docker image!!!}"
 
 
@@ -172,9 +284,9 @@ HEREDOC
     ############################################################################
 
       if [ "${dockerfile}" = "observer-debian" ]; then
-        echo "${elixir_version}"
+        echo "${elixir_tag}"
       else
-        echo "${elixir_version}-${phoenix_version}-${dockerfile}"
+        echo "${elixir_tag}-${phoenix_version}-${dockerfile}"
       fi
   }
 
@@ -182,7 +294,7 @@ HEREDOC
   {
     local container_name="${1? Missing container name!!!}"
 
-    printf "\n---> CREATING DOCKER VOLUME: ${container_name}\n"
+    Print_Text_With_Label "CREATING DOCKER VOLUME:" "${container_name}" "2"
 
     sudo docker volume create "${container_name}"
   }
@@ -194,10 +306,15 @@ HEREDOC
     ############################################################################
 
       local image_name="${1? Missing docker image name!!!}"
+
       local dockerfile="${2? Missing variant for docker image!!!}"
-      local elixir_version="${3? Missing Elixir version!!!}"
+
+      local elixir_tag="${3? Missing Elixir tag!!!}"
+
       local phoenix_version="${4? Missing Phoenix version!!!}"
+
       local phoenix_install_from="${5? Missing Phoenix install command!!!}"
+
       local build_path="${6? Missing build path for docker image!!!}"
 
 
@@ -206,11 +323,15 @@ HEREDOC
     ############################################################################
 
       if [ "${dockerfile}" = "observer-debian" ]; then
+
         local image_name=exadra37/observer
-        local elixir_version=latest
+
+        local elixir_tag=latest
+
       fi
 
-      local tag="$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
+      local tag="$( Get_Docker_Image_Tag "${elixir_tag}" "${phoenix_version}" "${dockerfile}" )"
+
       local docker_image="${image_name}:${tag}"
 
       local dockerfile_path="${build_path}"/${dockerfile}".Dockerfile"
@@ -220,18 +341,18 @@ HEREDOC
     # EXECUTION
     ############################################################################
 
-      printf "\n---> BUILDING FROM DOCKERFILE: ${dockerfile_path}\n"
+      Print_Text_With_Label "DOCKER IMAGE" "${docker_image}" "1"
 
-      printf "\n---> DOCKER IMAGE: ${docker_image}\n"
+      Print_Text_With_Label "BUILDING FROM DOCKERFILE" "${dockerfile_path}" "2"
 
-      printf "\n---> INSTALL PHOENIX: ${phoenix_install_from}\n"
+      Print_Text_With_Label "INSTALL PHOENIX" "${phoenix_install_from}" "3"
 
       sudo docker build \
         --no-cache \
         --force-rm \
         --pull \
         --file "${dockerfile_path}" \
-        --build-arg "ELIXIR_VERSION=${elixir_version}" \
+        --build-arg "ELIXIR_VERSION=${elixir_tag}" \
         --build-arg "PHOENIX_VERSION=${phoenix_version}" \
         --build-arg "PHOENIX_INSTALL_FROM=${phoenix_install_from}" \
         --tag ${docker_image} \
@@ -245,8 +366,11 @@ HEREDOC
     ############################################################################
 
       local container_name="${1? Missing container name!!!}"
+
       local container_user="${2? Missing container user!!!}"
+
       local background_mode="${3? Missing backround mode to run the container!!!}"
+
       local run_command="${4? Missing command to run in the container!!!}"
 
       shift 4
@@ -256,9 +380,9 @@ HEREDOC
     # EXECUTION
     ############################################################################
 
-      printf "\n---> ATTACHING TO CONTAINER: ${container_name}\n"
+      Print_Text_With_Label "ATTACHING TO CONTAINER" "${container_name}" "1"
 
-      printf "\n---> INVOKED COMMAND: ${run_command}\n\n"
+      Print_Text_With_Label "INVOKED COMMAND:" "${run_command} ${@}" "2"
 
       sudo docker exec \
         --user ${container_user} \
@@ -271,9 +395,20 @@ HEREDOC
 
   Docker_Container_Is_Running()
   {
-    sudo docker container ls -a | grep -q "${container_name}" -
+    ############################################################################
+    # INPUT
+    ############################################################################
 
-    return $?
+      local container_name="${1? Missing container name!!!}"
+
+
+    ############################################################################
+    # EXECUTION
+    ############################################################################
+
+      sudo docker container ls -a | grep -q "${container_name}" -
+
+      return $?
   }
 
   Start_Docker_Container()
@@ -283,14 +418,23 @@ HEREDOC
     ############################################################################
 
       local image_name="${1? Missing docker image name!!!}"
-      local elixir_version="${2? Missing Elixir version!!!}"
+
+      local elixir_tag="${2? Missing Elixir tag!!!}"
+
       local phoenix_version="${3? Missing Phoenix version!!!}"
+
       local dockerfile="${4? Missing docker image variant!!!}"
+
       local app_name="${5? Missing the APP name!!!}"
+
       local container_name="${6? Missing container name!!!}"
+
       local container_user="${7? Missing container user!!!}"
+
       local background_mode="${8? Missing backround mode to run the container!!!}"
+
       local run_command="${9? Missing command to run in the container!!!}"
+
       local host_setup_dir="${10? Missing host dir for Elixir stack setup!!!}"
 
       shift 10
@@ -302,10 +446,10 @@ HEREDOC
 
       if [ "${dockerfile}" = "observer-debian" ]; then
         image_name=exadra37/observer
-        elixir_version=latest
+        elixir_tag=latest
       fi
 
-      local tag="$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
+      local tag="$( Get_Docker_Image_Tag "${elixir_tag}" "${phoenix_version}" "${dockerfile}" )"
 
       local docker_image="${image_name}:${tag}"
 
@@ -318,6 +462,18 @@ HEREDOC
     # EXECUTION
     ############################################################################
 
+      if Is_Not_Present_Docker_Image "${docker_image}"; then
+
+        Print_Text_With_Label "DOCKER IMAGE" "${docker_image}" "0"
+
+        Print_Text_With_Label "TAG" "${tag}" "0"
+
+        Print_Text_With_Label "DOCKERFILE" "${dockerfile}" "0"
+
+        Print_Fatal_Error "Build first the docker image with: elixir build ${dockerfile}"
+
+        exit 1
+      fi
 
       if Docker_Container_Is_Running "${container_name}"; then
 
@@ -334,11 +490,15 @@ HEREDOC
         exit 0
       fi
 
-      printf "\n---> STARTING DOCKER IMAGE: ${docker_image}\n"
+      Print_Text_With_Label "STARTING DOCKER IMAGE" "${docker_image}" "1"
 
-      printf "\n---> CONTAINER USER: ${container_user}\n"
+      Print_Text_With_Label "INVOKED COMMAND" "${run_command} ${@}" "2"
 
-      printf "\n---> INVOKED COMMAND: ${run_command}\n\n"
+      Print_Text_With_Label "DOCKERFILE" "${dockerfile}" "3"
+
+      Print_Text_With_Label "TAG" "${tag}" "3"
+
+      Print_Text_With_Label "CONTAINER USER" "${container_user}" "3"
 
       sudo docker network create observer &> /dev/null || true
 
@@ -355,7 +515,7 @@ HEREDOC
         --volume "${PWD}":/home/"${container_user}"/workspace \
         --volume "${container_name}_${tag}_var_lib_postgresql":/var/lib/postgresql \
         --volume "${container_name}_${tag}_var_log_postgresql":/var/log/postgresql \
-        --volume "${container_name}_${tag}_config_sublime_text_3":/home/"${container_user}"/.config/sublime-text-3 \
+        --volume "${container_name}_${tag}_config_sublimetext_3":/home/"${container_user}"/.config/sublime-text-3 \
         --volume="/tmp/.X11-unix":"/tmp/.X11-unix":ro \
         --volume="${xauth}":"${xauth}":ro \
         --env="XAUTHORITY=${xauth}" \
@@ -371,27 +531,54 @@ HEREDOC
   Main()
   {
     ############################################################################
+    # CONSTANTS
+    ############################################################################
+
+      # from `/home/username/developer/acme` we will get `developer/acme`
+      CURRENT_PATH="${PWD#*${USER}/}"
+
+      APP_NAME="${CURRENT_PATH//\//_}"
+
+      APP_NODE_NAME=""
+
+      ELIXIR_NODE_COOKIE="super-long-secret-cookie"
+
+
+    ############################################################################
     # ENV
     ############################################################################
 
-      image_name=exadra37/elixir-phoenix
-      dockerfile=debian
-      elixir_version=1.8-slim
-      phoenix_version=1.4.0
-      run_command=elixir
-      build_path=~/bin/vendor/exadra37-docker/elixir/dev-cli/docker/build
-      background_mode="-it"
-      port_map="4000:4000"
-      elixirhost_setup_dir="${PWD}"/.local
-      env_file_suffix=".docker-container"
-      env_file_example_suffix="-example"
+      local image_name=exadra37/elixir-phoenix
 
-      # We can override any of the above variables in the .env.elixir-docker-stack file
+      local dockerfile=debian
+
+      local elixir_tag=slim
+
+      local phoenix_version=1.4.3
+
+      local phoenix_command=phx.server
+
+      local run_command=elixir
+
+      local build_path=~/bin/vendor/exadra37-docker/elixir/dev-cli/docker/build
+
+      local background_mode="-it"
+
+      local port_map="4000:4000"
+
+      local elixirhost_setup_dir="${PWD}"/.local
+
+      local env_file_suffix=".docker-container"
+
+      local env_file_example_suffix="-example"
+
+
+      # We can override any of the above variables in the .elixir-docker-stack file
       #   for the current project we are working on.
       # Bear in mind that some can be override if provided as an argument or option
       #   to this bash script.
-      if [ -f .env.elixir-docker-stack ]; then
-        source .env.elixir-docker-stack
+      if [ -f .elixir-docker-stack ]; then
+        source .elixir-docker-stack
       fi
 
       phoenix_install_from="hex phx_new ${phoenix_version}"
@@ -404,24 +591,12 @@ HEREDOC
         phoenix_install_from="https://github.com/phoenixframework/archives/raw/master/phx_new-${phoenix_version}.ez"
       fi
 
-
-    ############################################################################
-    # CONSTANTS
-    ############################################################################
-
-      # from `/home/username/developer/acme` we will get `developer/acme`
-      CURRENT_PATH="${PWD#*${USER}/}"
-
-      APP_NAME="${CURRENT_PATH//\//_}"
-
-      APP_NODE_NAME=""
+      local container_user=elixir
 
       # from `developer/acme` we get `developer_acme`
-      CONTAINER_NAME="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
+      local container_name="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_tag}" "${phoenix_version}" "${dockerfile}" )"
 
-      CONTAINER_USER=elixir
-
-      ELIXIR_NODE_COOKIE="super-long-secret-cookie"
+      local VERBOSE_LEVEL=0
 
 
     ############################################################################
@@ -432,33 +607,18 @@ HEREDOC
 
       Create_Env_File_If_Not_Exists "${env_file_suffix}" "${env_file_example_suffix}"
 
-      for argument in "${@}"; do
-        case "${argument}" in
-
-          --elixir-version )
-            elixir_version="${2? Missing Elixir version!!!}"
-            shift 2
-            ;;
-
-          --phoenix-version )
-            phoenix_version="${2? Missing Phoenix version!!!}"
-            shift 2
-            ;;
+      for input in "${@}"; do
+        case "${input}" in
 
           -d | --detached )
             background_mode="--detach"
             shift 1
             ;;
 
-          -it )
-            background_mode="-it"
-            shift 1
-            ;;
-
           --db | --database )
             previousbackground_mode=${background_mode}
 
-            Create_Docker_Volume "${CONTAINER_NAME}"
+            Create_Docker_Volume "${container_name}"
 
             run_command="postgres"
             background_mode="--detach"
@@ -466,12 +626,12 @@ HEREDOC
 
             Start_Docker_Container \
               "${image_name}" \
-              "${elixir_version}" \
+              "${elixir_tag}" \
               "${phoenix_version}" \
               "${dockerfile}" \
               "${APP_NAME}" \
-              "${CONTAINER_NAME}" \
-              "${CONTAINER_USER}" \
+              "${container_name}" \
+              "${container_user}" \
               "${background_mode}" \
               "${run_command}" \
               "${elixirhost_setup_dir}"
@@ -479,11 +639,25 @@ HEREDOC
             background_mode=${previousbackground_mode}
             ;;
 
+
+          --df | --dockerfile )
+            Print_Text_With_Label "OPTION" "--df, --dockerfile" "4"
+
+            dockerfile="${2? Missing variant for docker image... eg: alpine}"
+            container_name="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_tag}" "${phoenix_version}" "${dockerfile}" )"
+            shift 2
+            ;;
+
+          --et | --elixir-tag )
+            elixir_tag="${2? Missing Elixir tag!!!}"
+            shift 2
+            ;;
+
           -h | --help )
 
             shift 1
 
-            if [ "${1}" = "stack" ]; then
+            if [ "${1:-}" = "stack" ]; then
               Show_Help
               exit 0
             fi
@@ -491,6 +665,13 @@ HEREDOC
             run_command="elixir --help"
 
             ;;
+
+
+          -it )
+            background_mode="-it"
+            shift 1
+            ;;
+
 
           --no-cache )
             # not implemented yet
@@ -501,22 +682,31 @@ HEREDOC
             shift 2
             ;;
 
-          -u | --user )
-            CONTAINER_USER=${2? Missing user for container!!!}
+          --pv | --phoenix-version )
+            phoenix_version="${2? Missing Phoenix version!!!}"
             shift 2
             ;;
 
-          --dockerfile )
-            dockerfile="${2? Missing variant for docker image... eg: alpine}"
-            CONTAINER_NAME="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_version}" "${phoenix_version}" "${dockerfile}" )"
+          -u | --user )
+            container_user=${2? Missing user for container!!!}
             shift 2
+            ;;
+
+          --verbose )
+            shift 1
+
+            VERBOSE_LEVEL=${1:-${VERBOSE_LEVEL}}
+
+            if [ "$#" -ge 1 ]; then
+              shift 1
+            fi
             ;;
 
           build )
             Build_Docker_Image \
               "${image_name}" \
               "${2:-${dockerfile}}" \
-              "${elixir_version}" \
+              "${elixir_tag}" \
               "${phoenix_version}" \
               "${phoenix_install_from}" \
               "${build_path}"
@@ -525,12 +715,12 @@ HEREDOC
             ;;
 
           container-logs )
-            sudo docker logs -f "${CONTAINER_NAME}"
+            sudo docker logs -f "${container_name}"
             exit 0
             ;;
 
           down )
-            sudo docker stop "${CONTAINER_NAME}"
+            sudo docker stop "${container_name}"
             exit 0
             ;;
 
@@ -549,14 +739,14 @@ HEREDOC
 
             dockerfile="observer-debian"
             port_map="9999:4000"
-            CONTAINER_USER="observer"
+            container_user="observer"
             background_mode="-it"
 
-            CONTAINER_IP_ADDRESS=$( Get_Container_Ip_Address "${CONTAINER_NAME}" )
+            CONTAINER_IP_ADDRESS=$( Get_Container_Ip_Address "${container_name}" )
 
             APP_NODE_NAME="${APP_NAME}@${CONTAINER_IP_ADDRESS}"
 
-            CONTAINER_NAME="observer_${APP_NAME}"
+            container_name="observer_${APP_NAME}"
 
             # to implement over ssh tunnel:
             #   * https://sgeos.github.io/elixir/erlang/observer/2016/09/16/elixir_erlang_running_otp_observer_remotely.html
@@ -572,7 +762,7 @@ HEREDOC
           observer-cli )
             shift 1
 
-            CONTAINER_IP_ADDRESS=$( Get_Container_Ip_Address "${CONTAINER_NAME}" )
+            CONTAINER_IP_ADDRESS=$( Get_Container_Ip_Address "${container_name}" )
 
             APP_NODE_NAME="${APP_NAME}@${CONTAINER_IP_ADDRESS}"
 
@@ -584,8 +774,8 @@ HEREDOC
 
             dockerfile="observer-debian"
             port_map="9998:4000"
-            CONTAINER_USER="observer"
-            CONTAINER_NAME="observer_${APP_NAME}"
+            container_user="observer"
+            container_name="observer_${APP_NAME}"
 
             run_command="iex --name observer_cli@174.02.0.3 --cookie ${ELIXIR_NODE_COOKIE} --remsh ${remote_shell}"
 
@@ -608,38 +798,40 @@ HEREDOC
             ;;
 
           observer-shell )
-            APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${CONTAINER_NAME} )"
+            APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${container_name} )"
 
-            dockerfile="observer-debian"
-            port_map="9997:4000"
-            CONTAINER_USER="observer"
-            CONTAINER_NAME="observer_${APP_NAME}"
-            run_command=zsh
+            local dockerfile="observer-debian"
+            local port_map="9997:4000"
+            local container_user="observer"
+            local container_name="observer_${APP_NAME}"
+            local run_command=zsh
 
             shift 1
             ;;
 
           up )
             shift 1
-            phoenix_command="${1:-phx.server}"
+            local phoenix_command="${1:-${phoenix_command}}"
 
             if [ "$#" -ge 1 ]; then
               shift 1
             fi
 
-            APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${CONTAINER_NAME} )"
+            APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${container_name} )"
 
             # we need to set the --cookie and -sname in order to be able to use the
             # Observer from another docker container in the same docker network.
             #run_command="mix phoenix.server"
             #run_command="elixir --cookie ${ELIXIR_NODE_COOKIE} --name '${APP_NODE_NAME}' -S mix ${1:-phx.server}"
-            run_command="elixir-server ${APP_NAME} ${ELIXIR_NODE_COOKIE} ${phoenix_command}"
+            local run_command="elixir-server ${APP_NAME} ${ELIXIR_NODE_COOKIE} ${phoenix_command}"
 
             ;;
 
           shell )
+            Print_Text_With_Label "COMMAND" "Shell" "4"
+
             shift 1
-            run_command=${1:-zsh}
+            local run_command=${1:-zsh}
 
             if [ "$#" -ge 1 ]; then
               shift 1
@@ -655,14 +847,16 @@ HEREDOC
     # EXECUTION
     ############################################################################
 
+      Print_Text "STARTING EXECUTION" "4"
+
       Start_Docker_Container \
         "${image_name}" \
-        "${elixir_version}" \
+        "${elixir_tag}" \
         "${phoenix_version}" \
         "${dockerfile}" \
         "${APP_NAME}" \
-        "${CONTAINER_NAME}" \
-        "${CONTAINER_USER}" \
+        "${container_name}" \
+        "${container_user}" \
         "${background_mode}" \
         "${run_command}" \
         "${elixirhost_setup_dir}" \

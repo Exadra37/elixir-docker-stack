@@ -49,6 +49,8 @@ RUN apt update && \
     zsh \
     curl \
     less \
+    build-essential \
+    erlang-dev \
     git && \
   apt -y -f install && \
 
