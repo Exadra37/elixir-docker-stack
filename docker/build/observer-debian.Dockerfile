@@ -36,6 +36,7 @@ RUN apt update && \
   su "${CONTAINER_USER_NAME}" -c "sh -c 'mkdir -p ${CONTAINER_HOME}/.local/share'" && \
   su "${CONTAINER_USER_NAME}" -c "sh -c 'mkdir -p ${CONTAINER_BIN_PATH}'" && \
   su "${CONTAINER_USER_NAME}" -c "sh -c 'cp -r ${RESOURCES_DIR}/scripts/elixir/bin/observer ${CONTAINER_BIN_PATH}'" && \
+  su "${CONTAINER_USER_NAME}" -c "sh -c 'cp -r ${RESOURCES_DIR}/scripts/elixir/bin/observer-cli ${CONTAINER_BIN_PATH}'" && \
 
   "${RESOURCES_DIR}"/scripts/install-oh-my-zsh.sh \
     "${CONTAINER_HOME}" \
@@ -55,6 +56,6 @@ RUN git clone https://github.com/zhongwencool/observer_cli.git && \
   cd observer_cli && \
   rebar3 escriptize
 
-WORKDIR "${CONTAINER_HOME}/observer_cli"
+WORKDIR "${WORKSPACE_PATH}"
 
 CMD ["erl", "-hidden", "-run", "observer"]

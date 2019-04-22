@@ -44,21 +44,20 @@ Main()
     # @link https://elixirforum.com/t/is-possible-to-use-observer-with-multiple-applications/21617
     local app_node_name="$(echo ${app_node_name} | tr -d '\n\r\t ')"
 
-    # Node.connect(:"acme-app@172.24.0.2")
-    #local node_connect="Node.connect(:\"${app_node_name}\")"
+    cat <<-HEREDOC
 
-    #printf "\n---> iex --name '${observer_node_name}' --cookie '${node_cookie}' -e '${node_connect}' -e ':observer.start()'\n\n"
+  ##############################################################
+  #                                                            #
+  #     iex(${app_node_name})> :observer_cli.start()     #
+  #                                                            #
+  ##############################################################
 
-    # iex \
-    #  --name 'observer@172.24.0.3' \
-    #  --cookie '-7sXSFr5CfAlj|".0>`ci84E$0c9LEQtZ-pP0d:[qY.)#U|5Fp[3{_7U%R`-' \
-    #  -e 'Node.connect(:"acme-app@172.24.0.2")' \
-    #  -e ':observer.start()'
+HEREDOC
+
     iex \
       --name "${observer_node_name}" \
       --cookie "${node_cookie}" \
-      --remsh "${app_node_name}" \
-      -e ":observer_cli.start()"
+      --remsh "${app_node_name}"
 }
 
 Main "${@}"
