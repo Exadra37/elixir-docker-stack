@@ -5,91 +5,116 @@
 
 set -eu
 
-  Show_Help()
-  {
-    cat << HEREDOC
+Show_Help()
+{
+  cat << HEREDOC
 
-ELIXIR DOCKER DEV STACK
+  ELIXIR DOCKER DEV STACK
 
-A docker developemnt stack that includes Elixir, Phoenix, Erlang, Oberver and Postgres.
-
-
-Usage:
-
-  elixir [options] [command] [args]
+  A docker developemnt stack that includes Elixir, Phoenix, Erlang, Oberver and Postgres.
 
 
-Options:
+  Elixir CLI Usage:
 
-  -d, --detached            Run the docker container detached from the terminal.
-
-  --db, --database          Starts the container with the Postgres database up.
-
-  --df, --dockerfile        The dockerfile to build the container form.
-                            Defaults to: debian .
-
-  --el, --elixir-tag        The Elixir version to be used for the docker tag,
-                            Defaults to: slim
-
-  -it, --interactive-tty    Run the docker container attached to the terminal.
-
-  -p, --publish             Map the host ports to the docker container ports.
-                            Defaults to: 4000:4000 .
-
-  --pv, --phoenix-version   The Phoenix version to be installed.
-                            Defaults to the last release, eg: 1.4.3 .
-
-  -u, --user                The user we want to run inside the container,
-                            Defaults to current user, eg: 1000 .
+    elixir [options] [.exs file] [data]
 
 
-Commands:
-  <no-command>    Runs Elixir inside the container as it would in the host.
-                    $ elixir --help
+  Elixir Docker Stack Usage:
 
-  build           Builds the docker image for the given dodkerfile.
-                  Defaults to build from: debian .
-                    $ elixir build
-                    $ elixir build alpine
+    elixir [options] [command] [args]
 
-  container-logs  Shows a tail -f of the container logs.
-                    $ elixir container-logs
 
-  down            Stops and removes the running container.
-                    $ elixir down
+  Elixir Docker Stack Options:
 
-  iex             The Elixir IEx shell.
-                    $ elixir iex [options] <args>
+    -d, --detached            Run the docker container detached from the terminal.
 
-  mix             The Elixir mix tool.
-                    $ elixir mix <command> [options] <args>
-                    $ elixir mix help
-                    $ elixir mix new elixir-project
-                    $ elixir mic phx.new phoenix-app
+    --db, --database          Starts the container with the Postgres database up.
 
-  pgcli           A better shell for Postgres, includes uto-completion.
-                    $ elixir pgcli [options] <args>
+    --df, --dockerfile        The dockerfile to run a container.
+                              Defaults to: debian .
+                                $
+                                $ elixir --dockerfile alpine up
 
-  observer        Starts the Observer GUI from an IEx shell.
-                    $ elixir observer
+    --et, --elixir-tag        The Elixir version to be used for the docker tag,
+                              Defaults to the latest Elixir version: slim
+                                $ elixir --elixir-tag 1.3.4:slim
 
-  observer-cli    Allows to start from IEx the Observer CLI(like Linux HTOP).
-                    $ elixir observer-cli
+    -h, --help                Shows the help for the Elixir CLI and Stack.
+                                $ elixir -h
+                                $ elixir --help
+                                $ elixir --help stack
 
-  up              Starts the Elixir docker stack.
-                    $ elixir up
-                    $ elixir --db up
-                    $ elixir --dockerfile alpine up
-                    $ elixir -it --publish 8000:4000 up
-                    $ elixir --elixir-tag 1.3 --phoenix-version 1.3.4 --db up
+    -it, --interactive-tty    Run the docker container attached to the terminal.
+                                $ elixir -it up
 
-  shell           A shell inside the container for the Elixir docker stack.
-                    $ elixir shell
-                    $ elixir -u 0 shell
+    -p, --publish             Map the host ports to the docker container ports.
+                              Defaults to: 4000:4000 .
+                                $ elixir --publish 8000:4000
+
+    --pv, --phoenix-version   The Phoenix version to be installed.
+                              Defaults to the last release, eg: 1.4.3 .
+                                $ elixir --phoenix-version 1.3.4 up
+
+    -u, --user                The user we want to run inside the container,
+                              Defaults to current user, eg: 1000 .
+                                $ elixir --user 0 shell
+
+    --verbose <level>         Enables verbose output for the docker stack.
+                              Defaults to level 0, and can go until level 4.
+                                $ elixir --verbose 1 up
+                                $ elixir --verbose 2 shell
+                                $ elixir --verbose 3 observer
+                                $ elixir --verbose 4 build
+
+
+  Elixir Docker Stack Commands:
+
+    <no-command>    Runs Elixir inside the container as it would in the host.
+                      $ elixir --help
+
+    build           Builds the docker image for the given dodkerfile.
+                    Defaults to build from: debian .
+                      $ elixir build
+                      $ elixir build alpine
+
+    container-logs  Shows a tail -f of the container logs.
+                      $ elixir container-logs
+
+    down            Stops and removes the running container.
+                      $ elixir down
+
+    iex             The Elixir IEx shell.
+                      $ elixir iex [options] <args>
+
+    mix             The Elixir mix tool.
+                      $ elixir mix <command> [options] <args>
+                      $ elixir mix help
+                      $ elixir mix new elixir-project
+                      $ elixir mix phx.new phoenix-app
+
+    pgcli           A better shell for Postgres, includes uto-completion.
+                      $ elixir pgcli [options] <args>
+
+    observer        Starts the Observer GUI from an IEx shell.
+                      $ elixir observer
+
+    observer-cli    Allows to start from IEx the Observer CLI(like Linux HTOP).
+                      $ elixir observer-cli
+
+    up              Starts the Elixir docker stack.
+                      $ elixir up
+                      $ elixir --db up
+                      $ elixir --dockerfile alpine up
+                      $ elixir -it --publish 8000:4000 up
+                      $ elixir --elixir-tag 1.3 --phoenix-version 1.3.4 --db up
+
+    shell           A shell inside the container for the Elixir docker stack.
+                      $ elixir shell
+                      $ elixir -u 0 shell
 
 HEREDOC
 
-  }
+}
 
 ################################################################################
 # FUNCTIONS
@@ -441,63 +466,6 @@ HEREDOC
         ${run_command} ${@}
   }
 
-  Start_Dummy_App_Container()
-  {
-    ############################################################################
-    # INPUT
-    ############################################################################
-
-      local image_name="${1? Missing docker image name!!!}"
-
-      local elixir_tag="${2? Missing Elixir tag!!!}"
-
-      local phoenix_version="${3? Missing Phoenix version!!!}"
-
-      local dockerfile="${4? Missing docker image variant!!!}"
-
-      local app_name="${5? Missing the APP name!!!}"
-
-      local app_network="${6? Missing app network}"
-
-      local app_container_name="${7? Missing app container name!!!}"
-
-      local container_user="${8? Missing container user!!!}"
-
-      local host_setup_dir="${9? Missing host dir for Elixir stack setup!!!}"
-
-      shift 9
-
-
-    ############################################################################
-    # EXECUTION
-    ############################################################################
-
-      # We need a dummy Docker container running before we start any real
-      # process on it, so that we can run Elixir or Phoenix apps with a full
-      # qualified node name, byt getting the IP address of the dummy container.
-      if ! Docker_Container_Is_Running "${app_container_name}"; then
-
-        Print_Text "STARTING A DUMMY CONTAINER" "4"
-
-        Start_Or_Attach_To_App_Container \
-          "${image_name}" \
-          "${elixir_tag}" \
-          "${phoenix_version}" \
-          "${dockerfile}" \
-          "${app_name}" \
-          "${app_network}" \
-          "${app_container_name}" \
-          "${container_user}" \
-          "-td" \
-          "${host_setup_dir}" \
-          ""
-
-          # need to give time for the container be available, before we try to
-          # attach to it in the next command.
-          sleep 1
-    fi
-  }
-
   Start_Or_Attach_To_App_Container()
   {
     Print_Text_With_Label "FUNCTION" "Start_Or_Attach_To_App_Container" "4"
@@ -522,23 +490,20 @@ HEREDOC
 
       local container_user="${8? Missing container user!!!}"
 
-      local background_mode="${9? Missing backround mode to run the container!!!}"
+      local port_map="${9? Missing port map!!!}"
 
-      local host_setup_dir="${10? Missing host dir for Elixir stack setup!!!}"
+      local background_mode="${10? Missing backround mode to run the container!!!}"
 
-      local run_command="${11? Missing command to run in the container!!!}"
+      local host_setup_dir="${11? Missing host dir for Elixir stack setup!!!}"
 
-      shift 11
+      local run_command="${12? Missing command to run in the container!!!}"
+
+      shift 12
 
 
     ############################################################################
     # VARS
     ############################################################################
-
-      if [ "${dockerfile}" = "observer-debian" ]; then
-        image_name=exadra37/observer
-        elixir_tag=latest
-      fi
 
       local tag="$( Get_Docker_Image_Tag "${elixir_tag}" "${phoenix_version}" "${dockerfile}" )"
 
@@ -615,6 +580,66 @@ HEREDOC
         --env="XAUTHORITY=${xauth}" \
         "${docker_image}" \
         ${run_command} ${@}
+  }
+
+   Start_Dummy_App_Container()
+  {
+    ############################################################################
+    # INPUT
+    ############################################################################
+
+      local image_name="${1? Missing docker image name!!!}"
+
+      local elixir_tag="${2? Missing Elixir tag!!!}"
+
+      local phoenix_version="${3? Missing Phoenix version!!!}"
+
+      local dockerfile="${4? Missing docker image variant!!!}"
+
+      local app_name="${5? Missing the APP name!!!}"
+
+      local app_network="${6? Missing app network}"
+
+      local app_container_name="${7? Missing app container name!!!}"
+
+      local container_user="${8? Missing container user!!!}"
+
+      local port_map="${9? Missing port map!!!}"
+
+      local host_setup_dir="${10? Missing host dir for Elixir stack setup!!!}"
+
+      shift 10
+
+
+    ############################################################################
+    # EXECUTION
+    ############################################################################
+
+      # We need a dummy Docker container running before we start any real
+      # process on it, so that we can run Elixir or Phoenix apps with a full
+      # qualified node name, byt getting the IP address of the dummy container.
+      if ! Docker_Container_Is_Running "${app_container_name}"; then
+
+        Print_Text "STARTING A DUMMY CONTAINER" "4"
+
+        Start_Or_Attach_To_App_Container \
+          "${image_name}" \
+          "${elixir_tag}" \
+          "${phoenix_version}" \
+          "${dockerfile}" \
+          "${app_name}" \
+          "${app_network}" \
+          "${app_container_name}" \
+          "${container_user}" \
+          "${port_map}" \
+          "-td" \
+          "${host_setup_dir}" \
+          ""
+
+          # need to give time for the container be available, before we try to
+          # attach to it in the next command.
+          sleep 1
+    fi
   }
 
   Start_Database_Container()
@@ -1014,6 +1039,7 @@ HEREDOC
               "${app_network}" \
               "${app_container_name}" \
               "${container_user}" \
+              "${port_map}" \
               "${host_setup_dir}"
 
             shift 1
@@ -1061,6 +1087,7 @@ HEREDOC
         "${app_network}" \
         "${app_container_name}" \
         "${container_user}" \
+        "${port_map}" \
         "${background_mode}" \
         "${host_setup_dir}" \
         "${run_command}" \
