@@ -409,7 +409,7 @@ HEREDOC
     # INPUT
     ############################################################################
 
-      local container_name="${1? Missing container name!!!}"
+      local app_container_name="${1? Missing app container name!!!}"
 
       local container_user="${2? Missing container user!!!}"
 
@@ -424,21 +424,78 @@ HEREDOC
     # EXECUTION
     ############################################################################
 
-      Print_Text_With_Label "ATTACHING TO CONTAINER" "${container_name}" "1"
+      Print_Text_With_Label "ATTACHING TO CONTAINER" "${app_container_name}" "1"
 
       Print_Text_With_Label "INVOKED COMMAND" "${run_command} ${@}" "2"
 
       Print_Text_With_Label "BACKGROUND MODE" "${background_mode}" "3"
 
-      APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${container_name} )"
+      APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${app_container_name} )"
 
       sudo docker exec \
         --user ${container_user} \
         --env "APP_NODE_NAME=${APP_NODE_NAME}" \
         --env "APP_NODE_COOKIE=${ERLANG_COOKIE}" \
         ${background_mode} \
-        ${container_name} \
+        ${app_container_name} \
         ${run_command} ${@}
+  }
+
+  Start_Dummy_App_Container()
+  {
+    ############################################################################
+    # INPUT
+    ############################################################################
+
+      local image_name="${1? Missing docker image name!!!}"
+
+      local elixir_tag="${2? Missing Elixir tag!!!}"
+
+      local phoenix_version="${3? Missing Phoenix version!!!}"
+
+      local dockerfile="${4? Missing docker image variant!!!}"
+
+      local app_name="${5? Missing the APP name!!!}"
+
+      local app_network="${6? Missing app network}"
+
+      local app_container_name="${7? Missing app container name!!!}"
+
+      local container_user="${8? Missing container user!!!}"
+
+      local host_setup_dir="${9? Missing host dir for Elixir stack setup!!!}"
+
+      shift 9
+
+
+    ############################################################################
+    # EXECUTION
+    ############################################################################
+
+      # We need a dummy Docker container running before we start any real
+      # process on it, so that we can run Elixir or Phoenix apps with a full
+      # qualified node name, byt getting the IP address of the dummy container.
+      if ! Docker_Container_Is_Running "${app_container_name}"; then
+
+        Print_Text "STARTING A DUMMY CONTAINER" "4"
+
+        Start_Or_Attach_To_App_Container \
+          "${image_name}" \
+          "${elixir_tag}" \
+          "${phoenix_version}" \
+          "${dockerfile}" \
+          "${app_name}" \
+          "${app_network}" \
+          "${app_container_name}" \
+          "${container_user}" \
+          "-td" \
+          "${host_setup_dir}" \
+          ""
+
+          # need to give time for the container be available, before we try to
+          # attach to it in the next command.
+          sleep 1
+    fi
   }
 
   Start_Or_Attach_To_App_Container()
@@ -461,7 +518,7 @@ HEREDOC
 
       local app_network="${6? Missing app network}"
 
-      local container_name="${7? Missing container name!!!}"
+      local app_container_name="${7? Missing app container name!!!}"
 
       local container_user="${8? Missing container user!!!}"
 
@@ -509,16 +566,17 @@ HEREDOC
         exit 1
       fi
 
-      if Docker_Container_Is_Running "${container_name}"; then
+      if Docker_Container_Is_Running "${app_container_name}"; then
 
         Attach_To_App_Container \
-          "${container_name}" \
+          "${app_container_name}" \
           "${container_user}" \
           "${background_mode}" \
-          "${run_command}"
+          "${run_command}" \
+          ${@}
 
         # if [ "${background_mode}" == "-it" ]; then
-        #   sudo docker stop "${container_name}"
+        #   sudo docker stop "${app_container_name}"
         # fi
 
         exit 0
@@ -544,14 +602,14 @@ HEREDOC
         --env-file .env.docker-container \
         --env "APP_NODE_NAME=${APP_NODE_NAME}" \
         --env "APP_NODE_COOKIE=${ERLANG_COOKIE}" \
-        --name "${container_name}" \
+        --name "${app_container_name}" \
         --user "${container_user}" \
         --network "${app_network}" \
         --publish "127.0.0.1:${port_map}" \
         --volume "${PWD}":/home/"${container_user}"/workspace \
-        --volume "${container_name}_${tag}_var_lib_postgresql":/var/lib/postgresql \
-        --volume "${container_name}_${tag}_var_log_postgresql":/var/log/postgresql \
-        --volume "${container_name}_${tag}_config_sublimetext_3":/home/"${container_user}"/.config/sublime-text-3 \
+        --volume "${app_container_name}_${tag}_var_lib_postgresql":/var/lib/postgresql \
+        --volume "${app_container_name}_${tag}_var_log_postgresql":/var/log/postgresql \
+        --volume "${app_container_name}_${tag}_config_sublimetext_3":/home/"${container_user}"/.config/sublime-text-3 \
         --volume="/tmp/.X11-unix":"/tmp/.X11-unix":ro \
         --volume="${xauth}":"${xauth}":ro \
         --env="XAUTHORITY=${xauth}" \
@@ -582,12 +640,6 @@ HEREDOC
       local run_command="${8? Missing command to run in the container!!!}"
 
       shift 8
-
-
-    ############################################################################
-    # CONSTANTS
-    ############################################################################
-
 
 
     ############################################################################
@@ -634,7 +686,7 @@ HEREDOC
 
       local app_network="${3? Missing app network!!!}"
 
-      local app_ip_address="${4? Missing app ip address!!!}"
+      local app_container_name="${4? Missing app container_name!!!}"
 
       local erlang_cookie="${5? Missing the Erlang cookie!!!}"
 
@@ -643,8 +695,17 @@ HEREDOC
       Print_Text_With_Label "HOST SETUP DIR" "${host_setup_dir}" "3"
       Print_Text_With_Label "APP NAME" "${app_name}" "3"
       Print_Text_With_Label "APP NETWORK" "${app_network}" "3"
-      Print_Text_With_Label "APP IP ADDRESS" "${app_ip_address}" "3"
+      Print_Text_With_Label "APP CONTAINER NAME" "${app_container_name}" "3"
       Print_Text_With_Label "ERLANG COOKIE" "${erlang_cookie}" "3"
+
+      if ! Docker_Container_Is_Running "${app_container_name}"; then
+        Print_Fatal_Error "The App container >>> ${app_container_name} <<< is not running. Are you in the APP root folder?"
+        return
+      fi
+
+      local app_ip_address=$( Get_Container_Ip_Address "${app_container_name}" )
+
+      Print_Text_With_Label "APP IP ADDRESS" "${app_ip_address}" "3"
 
       case "${1:-}" in
         "htop" )
@@ -668,7 +729,6 @@ HEREDOC
           Print_Fatal_Error "Unsupported: ${input}"
 
       esac
-
 
     ############################################################################
     # CONSTANTS
@@ -743,8 +803,6 @@ HEREDOC
 
       local phoenix_command=phx.server
 
-      local run_command=elixir
-
       local build_path=~/bin/vendor/exadra37-docker/elixir/dev-cli/docker/build
 
       local background_mode="-it"
@@ -787,7 +845,7 @@ HEREDOC
       local container_user=elixir
 
       #local container_name="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_tag}" "${phoenix_version}" "${dockerfile}" )"
-      local container_name="${APP_NAME}_app"
+      local app_container_name="${APP_NAME}_app"
 
       local VERBOSE_LEVEL=0
 
@@ -806,6 +864,7 @@ HEREDOC
 
       Create_Docker_Network_If_Not_Exists "${app_network}"
 
+      local run_command=${0##*/}
 
       for input in "${@}"; do
         case "${input}" in
@@ -837,7 +896,7 @@ HEREDOC
             Print_Text_With_Label "OPTION" "--df, --dockerfile" "4"
 
             dockerfile="${2? Missing variant for docker image... eg: alpine}"
-            #container_name="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_tag}" "${phoenix_version}" "${dockerfile}" )"
+
             shift 2
             ;;
 
@@ -908,12 +967,12 @@ HEREDOC
             ;;
 
           container-logs )
-            sudo docker logs -f "${container_name}"
+            sudo docker logs -f "${app_container_name}"
             exit 0
             ;;
 
           down )
-            sudo docker stop "${container_name}"
+            sudo docker stop "${app_container_name}"
             sudo docker stop "${database_container_name}"
             exit 0
             ;;
@@ -932,24 +991,13 @@ HEREDOC
             #  * https://chazsconi.github.io/2017/04/22/observing-remote-elixir-docker-nodes.html
             #run_command="observer_cli elixir@b09b4f769088 ${ERLANG_COOKIE}"
 
-            Print_Text_With_Label "CONTAINER NAME" "${container_name}" "3"
-
-            if Docker_Container_Is_Running "${container_name}"; then
-
-              local app_ip_address=$( Get_Container_Ip_Address "${container_name}" )
-
-              Start_Observer_Container \
-                "${host_setup_dir}" \
-                "${APP_NAME}" \
-                "${app_network}" \
-                "${app_ip_address}" \
-                "${ERLANG_COOKIE}" \
-                ${@}
-
-              exit 0
-            fi
-
-            Print_Fatal_Error "The App container ${container_name} is not running or no arguments provided to connect to a remote node."
+            Start_Observer_Container \
+              "${host_setup_dir}" \
+              "${APP_NAME}" \
+              "${app_network}" \
+              "${app_container_name}" \
+              "${ERLANG_COOKIE}" \
+              ${@}
 
             exit 0
             ;;
@@ -957,7 +1005,19 @@ HEREDOC
           up )
             Print_Text_With_Label "COMMAND" "up" "4"
 
+            Start_Dummy_App_Container \
+              "${image_name}" \
+              "${elixir_tag}" \
+              "${phoenix_version}" \
+              "${dockerfile}" \
+              "${APP_NAME}" \
+              "${app_network}" \
+              "${app_container_name}" \
+              "${container_user}" \
+              "${host_setup_dir}"
+
             shift 1
+
             local phoenix_command="${1:-${phoenix_command}}"
 
             if [ "$#" -ge 1 ]; then
@@ -992,31 +1052,6 @@ HEREDOC
     # EXECUTION
     ############################################################################
 
-      # We need a dummy Docker container running before we start any real
-      # process on it, so that we can run Elixir or Phoenix apps with a full
-      # qualified node name, byt getting the IP address of the dummy container.
-      if ! Docker_Container_Is_Running "${container_name}"; then
-
-        Print_Text "STARTING A DUMMY CONTAINER" "4"
-
-        Start_Or_Attach_To_App_Container \
-          "${image_name}" \
-          "${elixir_tag}" \
-          "${phoenix_version}" \
-          "${dockerfile}" \
-          "${APP_NAME}" \
-          "${app_network}" \
-          "${container_name}" \
-          "${container_user}" \
-          "-td" \
-          "${host_setup_dir}" \
-          ""
-
-          # need to give time for the container be available, before we try to
-          # attach to it in the next command.
-          sleep 1
-      fi
-
       Start_Or_Attach_To_App_Container \
         "${image_name}" \
         "${elixir_tag}" \
@@ -1024,7 +1059,7 @@ HEREDOC
         "${dockerfile}" \
         "${APP_NAME}" \
         "${app_network}" \
-        "${container_name}" \
+        "${app_container_name}" \
         "${container_user}" \
         "${background_mode}" \
         "${host_setup_dir}" \
