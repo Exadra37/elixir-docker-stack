@@ -917,7 +917,6 @@ HEREDOC
             ;;
 
           --db | --database )
-
             Print_Text_With_Label "OPTION" "--db, --database" "4"
 
             shift 1
@@ -948,7 +947,6 @@ HEREDOC
             ;;
 
           -h | --help )
-
             shift 1
 
             if [ "${1:-}" = "stack" ]; then
@@ -957,9 +955,7 @@ HEREDOC
             fi
 
             run_command="elixir --help"
-
             ;;
-
 
           -it )
             background_mode="-it"
@@ -1071,10 +1067,9 @@ HEREDOC
 
             # we need to set the --cookie and -sname in order to be able to use the
             # Observer from another docker container in the same docker network.
-            #run_command="mix phoenix.server"
-            #run_command="elixir --cookie ${ERLANG_COOKIE} --name '${APP_NODE_NAME}' -S mix ${1:-phx.server}"
+            # The run command will execute inside the container:
+            #   $ elixir --name video-hup_app@172.0.0.2 --cookie some-long-super-secret  -S mix phx.server"
             local run_command="elixir-server ${APP_NAME} ${ERLANG_COOKIE} ${phoenix_command}"
-
             ;;
 
           shell )
@@ -1086,7 +1081,6 @@ HEREDOC
             if [ "$#" -ge 1 ]; then
               shift 1
             fi
-
             ;;
 
         esac
