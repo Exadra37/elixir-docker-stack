@@ -852,7 +852,7 @@ HEREDOC
 
       local dockerfile=debian
 
-      local elixir_tag=slim
+      local elixir_tag=1.8-slim
 
       local phoenix_version=1.4.3
 
@@ -864,8 +864,6 @@ HEREDOC
 
       local port_map="4000:4000"
 
-      local host_setup_dir="${PWD}"/.local
-
       local env_file=".env.docker-container"
 
       local database_image=postgres:alpine
@@ -874,15 +872,22 @@ HEREDOC
 
       local database_command=postgres
 
-      local database_data_dir="${host_setup_dir}"/postgres/data
-
-
-      # We can override any of the above variables in the .elixir-docker-stack file
-      #   for the current project we are working on.
+      # We can override any of the above variables in the .elixir-docker-stack-defaults
+      # file in the home directory or from the root for the project we are
+      # working on.
+      #
       # Bear in mind that some can be override if provided as an argument or option
-      #   to this bash script.
-      if [ -f .elixir-docker-stack ]; then
-        source .elixir-docker-stack
+      # to this bash script.
+      if [ -f ~/.elixir-docker-stack-defaults ]; then
+        source ~/.elixir-docker-stack-defaults
+      fi
+
+      # It will override any variable already declared the ~/.env.elixir-docker-stack-defaults.
+      #
+      # Bear in mind that some can be override if provided as an argument or option
+      # to this bash script.
+      if [ -f .elixir-docker-stack-defaults ]; then
+        source .elixir-docker-stack-defaults
       fi
 
       phoenix_install_from="hex phx_new ${phoenix_version}"
@@ -895,9 +900,13 @@ HEREDOC
         phoenix_install_from="https://github.com/phoenixframework/archives/raw/master/phx_new-${phoenix_version}.ez"
       fi
 
+      # from `developer/acme/my-app` we get `~/.elixir-docker-stack/developer_acme_my-app`
+      local host_setup_dir=~/.elixir-docker-stack/"${CURRENT_PATH//\//_}"
+
+      local database_data_dir="${host_setup_dir}"/postgres/data
+
       local container_user=elixir
 
-      #local container_name="${APP_NAME}_$( Get_Docker_Image_Tag "${elixir_tag}" "${phoenix_version}" "${dockerfile}" )"
       local app_container_name="${APP_NAME}_app"
 
       local VERBOSE_LEVEL=0
