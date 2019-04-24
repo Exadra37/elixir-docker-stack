@@ -502,6 +502,8 @@ HEREDOC
 
       shift 13
 
+      local args="${@}"
+
 
     ############################################################################
     # VARS
@@ -551,7 +553,7 @@ HEREDOC
 
       Print_Text_With_Label "STARTING DOCKER IMAGE" "${docker_image}" "1"
 
-      Print_Text_With_Label "INVOKED COMMAND" "${run_command} ${@}" "2"
+      Print_Text_With_Label "INVOKED COMMAND" "${run_command} ${args}" "2"
 
       Print_Text_With_Label "DOCKERFILE" "${dockerfile}" "3"
 
@@ -585,7 +587,7 @@ HEREDOC
         --volume="${xauth}":"${xauth}":ro \
         --env="XAUTHORITY=${xauth}" \
         "${docker_image}" \
-        ${run_command} ${@}
+        ${run_command} ${args}
   }
 
   Start_Dummy_App_Container()
@@ -653,6 +655,8 @@ HEREDOC
 
   Start_Database_Container()
   {
+    Print_Text_With_Label "FUNCTION" "Start_Database_Container" "4"
+
     ############################################################################
     # INPUT
     ############################################################################
@@ -685,19 +689,86 @@ HEREDOC
       Print_Text_With_Label "DATABASE CONTAINER" "${database_container_name}" "2"
 
       if Docker_Container_Is_Running "${database_container_name}"; then
-        return
+
+        Print_Text_With_Label "CHECK POINT" "Attach to Database Container" "4"
+
+        sudo docker exec \
+          -it \
+          "${database_container_name}" \
+          ${run_command}
+
+        return 0
       fi
 
       Print_Text_With_Label "INVOKED COMMAND" "${run_command} ${@}" "2"
 
       sudo docker run \
         --rm \
-        --detach \
+        "${background_mode}" \
         --hostname "${app_name}_database" \
         --name "${database_container_name}" \
         --network "${app_network}" \
         --volume "${database_data_dir}":/var/lib/postgresql/data \
         "${database_image}" ${run_command} ${@}
+  }
+
+  Create_New_Database()
+  {
+    Print_Text_With_Label "FUNCTION" "Create_New_Database" "4"
+
+    ############################################################################
+    # INPUT
+    ############################################################################
+
+      local app_name="${1? Missing app name!!!}"
+
+      local app_network="${2? Missing app network!!!}"
+
+      local database_image="${3? Missing database image name!!!}"
+
+      local database_data_dir="${4? Missing database data dir!!!}"
+
+      local container_user="${5? Missing container user!!!}"
+
+      local database_container_name="${6? Missing database container name!!!}"
+
+      local run_command="${7? Missing command to run in the container!!!}"
+
+      shift 7
+
+      for input in "${@}"; do
+          case "${input}" in
+            new )
+              local new_app_name="${2? Missing new app name!!!}"
+              ;;
+            --no-ecto )
+              return
+              ;;
+          esac
+      done
+
+
+    ############################################################################
+    # EXECUTION
+    ############################################################################
+
+      Print_Text_With_Label "INVOKED COMMAND" "${run_command}" "4"
+
+      case "${run_command}" in
+        "mix" )
+
+          # $ createdb -h postgres_video-hub -O postgres -U postgres testapp_dev
+          Start_Database_Container \
+            "${APP_NAME}" \
+            "${app_network}" \
+            "${database_image}" \
+            "${database_data_dir}" \
+            "${database_user}" \
+            "${database_container_name}" \
+            "-it" \
+            "createdb -h ${database_container_name} -O postgres -U postgres ${new_app_name}_dev"
+          ;;
+      esac
   }
 
   Start_Observer_Container()
@@ -930,6 +1001,8 @@ HEREDOC
         case "${input}" in
 
           -d | --detached )
+            Print_Text_With_Label "OPTION" "-d, --detached" "4"
+
             background_mode="--detach"
             shift 1
             ;;
@@ -960,11 +1033,15 @@ HEREDOC
             ;;
 
           --et | --elixir-tag )
+            Print_Text_With_Label "OPTION" "--et, --elixir-tag" "4"
+
             elixir_tag="${2? Missing Elixir tag!!!}"
             shift 2
             ;;
 
           -h | --help )
+            Print_Text_With_Label "OPTION" "-h, --help" "4"
+
             shift 1
 
             if [ "${1:-}" = "stack" ]; then
@@ -976,6 +1053,8 @@ HEREDOC
             ;;
 
           -it )
+            Print_Text_With_Label "OPTION" "-it" "4"
+
             background_mode="-it"
             shift 1
             ;;
@@ -986,21 +1065,29 @@ HEREDOC
             ;;
 
           -p | --publish )
+            Print_Text_With_Label "OPTION" "-p, --publish" "4"
+
             port_map=${2? Missing host port map for the container, eg: 3000:3000 !!!}
             shift 2
             ;;
 
           --pv | --phoenix-version )
+            Print_Text_With_Label "OPTION" "--pv, --phoenix-version" "4"
+
             phoenix_version="${2? Missing Phoenix version!!!}"
             shift 2
             ;;
 
           -u | --user )
+            Print_Text_With_Label "OPTION" "-u, --user" "4"
+
             container_user=${2? Missing user for container!!!}
             shift 2
             ;;
 
           --verbose )
+            Print_Text_With_Label "OPTION" "--verbose" "4"
+
             shift 1
 
             VERBOSE_LEVEL=${1:-${VERBOSE_LEVEL}}
@@ -1011,6 +1098,8 @@ HEREDOC
             ;;
 
           build )
+            Print_Text_With_Label "COMMAND" "build" "4"
+
             Build_Docker_Image \
               "${image_name}" \
               "${2:-${dockerfile}}" \
@@ -1023,11 +1112,15 @@ HEREDOC
             ;;
 
           container-logs )
+            Print_Text_With_Label "COMMAND" "container-logs" "4"
+
             sudo docker logs -f "${app_container_name}"
             exit 0
             ;;
 
           down )
+            Print_Text_With_Label "COMMAND" "down" "4"
+
             Stop_And_Remove_Docker_Containers \
               "${app_container_name}" \
               "${database_container_name}"
@@ -1040,7 +1133,23 @@ HEREDOC
             shift 1
             ;;
 
+          new )
+            Print_Text_With_Label "COMMAND" "new" "4"
+
+            Create_New_Database \
+              "${APP_NAME}" \
+              "${app_network}" \
+              "${database_image}" \
+              "${database_data_dir}" \
+              "${database_user}" \
+              "${database_container_name}" \
+              "${run_command}" \
+              ${@}
+          ;;
+
           observer )
+            Print_Text_With_Label "COMMAND" "observer" "4"
+
             shift 1
 
             # TODO:
@@ -1124,7 +1233,7 @@ HEREDOC
         "${background_mode}" \
         "${host_setup_dir}" \
         "${run_command}" \
-        "${@}"
+        ${@}
   }
 
 Main "${@}"
