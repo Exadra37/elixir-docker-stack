@@ -492,13 +492,15 @@ HEREDOC
 
       local port_map="${9? Missing port map!!!}"
 
-      local background_mode="${10? Missing backround mode to run the container!!!}"
+      local env_file="${10? Missing the env file!!!}"
 
-      local host_setup_dir="${11? Missing host dir for Elixir stack setup!!!}"
+      local background_mode="${11? Missing backround mode to run the container!!!}"
 
-      local run_command="${12? Missing command to run in the container!!!}"
+      local host_setup_dir="${12? Missing host dir for Elixir stack setup!!!}"
 
-      shift 12
+      local run_command="${13? Missing command to run in the container!!!}"
+
+      shift 13
 
 
     ############################################################################
@@ -526,7 +528,7 @@ HEREDOC
 
         Print_Text_With_Label "DOCKERFILE" "${dockerfile}" "0"
 
-        Print_Fatal_Error "Build first the docker image with: elixir build ${dockerfile}"
+        Print_Fatal_Error "Missing docker image for >>> ${app_name} <<< APP. Build it with: elixir build ${dockerfile}"
 
         exit 1
       fi
@@ -559,12 +561,16 @@ HEREDOC
 
       Print_Text_With_Label "APP NETWORK" "${app_network}" "3"
 
-      #Create_Docker_Network_If_Not_Exists "observer"
+      local env_file_option=""
+
+      if [ -f "${env_file}" ]; then
+          local env_file_option="--env-file ${env_file}"
+      fi
 
       sudo docker run \
         --rm \
-        "${background_mode}" \
-        --env-file .env.docker-container \
+        ${background_mode} \
+        ${env_file_option} \
         --env "APP_NODE_NAME=${APP_NODE_NAME}" \
         --env "APP_NODE_COOKIE=${ERLANG_COOKIE}" \
         --name "${app_container_name}" \
@@ -582,7 +588,7 @@ HEREDOC
         ${run_command} ${@}
   }
 
-   Start_Dummy_App_Container()
+  Start_Dummy_App_Container()
   {
     ############################################################################
     # INPUT
@@ -606,9 +612,11 @@ HEREDOC
 
       local port_map="${9? Missing port map!!!}"
 
-      local host_setup_dir="${10? Missing host dir for Elixir stack setup!!!}"
+      local env_file="${10? Missing the env file!!!}"
 
-      shift 10
+      local host_setup_dir="${11? Missing host dir for Elixir stack setup!!!}"
+
+      shift 11
 
 
     ############################################################################
@@ -632,6 +640,7 @@ HEREDOC
           "${app_container_name}" \
           "${container_user}" \
           "${port_map}" \
+          "${env_file}" \
           "-td" \
           "${host_setup_dir}" \
           ""
@@ -718,9 +727,13 @@ HEREDOC
       shift 5
 
       Print_Text_With_Label "HOST SETUP DIR" "${host_setup_dir}" "3"
+
       Print_Text_With_Label "APP NAME" "${app_name}" "3"
+
       Print_Text_With_Label "APP NETWORK" "${app_network}" "3"
+
       Print_Text_With_Label "APP CONTAINER NAME" "${app_container_name}" "3"
+
       Print_Text_With_Label "ERLANG COOKIE" "${erlang_cookie}" "3"
 
       if ! Docker_Container_Is_Running "${app_container_name}"; then
@@ -853,9 +866,7 @@ HEREDOC
 
       local host_setup_dir="${PWD}"/.local
 
-      local env_file_suffix=".docker-container"
-
-      local env_file_example_suffix="-example"
+      local env_file=".env.docker-container"
 
       local database_image=postgres:alpine
 
@@ -901,8 +912,6 @@ HEREDOC
     ############################################################################
 
       mkdir -p "${host_setup_dir}"
-
-      Create_Env_File_If_Not_Exists "${env_file_suffix}" "${env_file_example_suffix}"
 
       Create_Docker_Network_If_Not_Exists "${app_network}"
 
@@ -1055,6 +1064,7 @@ HEREDOC
               "${app_container_name}" \
               "${container_user}" \
               "${port_map}" \
+              "${env_file}" \
               "${host_setup_dir}"
 
             shift 1
@@ -1101,6 +1111,7 @@ HEREDOC
         "${app_container_name}" \
         "${container_user}" \
         "${port_map}" \
+        "${env_file}" \
         "${background_mode}" \
         "${host_setup_dir}" \
         "${run_command}" \
