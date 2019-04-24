@@ -791,6 +791,23 @@ HEREDOC
         "${OBSERVER_DOCKER_IMAGE}" ${observer_command} ${@}
   }
 
+  Stop_And_Remove_Docker_Containers()
+  {
+    ############################################################################
+    # EXECUTION
+    ############################################################################
+
+      for container_name in "${@}"; do
+
+        if Docker_Container_Is_Running "${container_name}" ; then
+
+          # no need to remove the containers explicitly, once they where started
+          # with the `--rm` flag
+          sudo docker stop "${container_name}"
+        fi
+
+      done
+  }
 
 ################################################################################
 # MAIN
@@ -997,8 +1014,10 @@ HEREDOC
             ;;
 
           down )
-            sudo docker stop "${app_container_name}"
-            sudo docker stop "${database_container_name}"
+            Stop_And_Remove_Docker_Containers \
+              "${app_container_name}" \
+              "${database_container_name}"
+
             exit 0
             ;;
 

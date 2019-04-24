@@ -42,7 +42,8 @@ ENV PATH="${CONTAINER_BIN_PATH}":"${POSTGRES_BIN_PATH}":${PATH}
 
 COPY ./resources /docker-build-resources
 
-RUN apt update && \
+RUN \
+  apt update && \
   apt -y upgrade && \
   apt -y -q install --no-install-recommends \
     ca-certificates \
@@ -52,7 +53,7 @@ RUN apt update && \
     build-essential \
     erlang-dev \
     git && \
-  apt -y -f install && \
+  apt -y -q -f install && \
 
   useradd -m -u "${CONTAINER_UID}" -s /usr/bin/zsh "${CONTAINER_USER_NAME}" && \
 
@@ -61,20 +62,13 @@ RUN apt update && \
   su "${CONTAINER_USER_NAME}" -c "sh -c 'mkdir -p ${CONTAINER_BIN_PATH}'" && \
   su "${CONTAINER_USER_NAME}" -c "sh -c 'cp -r ${RESOURCES_DIR}/scripts/elixir/bin/* ${CONTAINER_BIN_PATH}'" && \
 
-  "${RESOURCES_DIR}"/scripts/elixir/observer/fix-dependencies.sh && \
-
-  "${RESOURCES_DIR}"/scripts/debian/install-nodejs.sh "${NODE_VERSION}" && \
-
-  "${RESOURCES_DIR}"/scripts/debian/install-firefox.sh && \
-
   "${RESOURCES_DIR}"/scripts/debian/install-locales.sh \
     "${LOCALIZATION}" \
     "${ENCODING}" && \
 
-  "${RESOURCES_DIR}"/scripts/debian/install-postgres.sh \
-    "stretch" \
-    "11" \
-    "${CONTAINER_USER_NAME}" && \
+  "${RESOURCES_DIR}"/scripts/elixir/observer/fix-dependencies.sh && \
+
+  "${RESOURCES_DIR}"/scripts/debian/install-nodejs.sh "${NODE_VERSION}" && \
 
   "${RESOURCES_DIR}"/scripts/debian/install-pgcli.sh && \
 
@@ -88,11 +82,6 @@ RUN apt update && \
     "${WORKSPACE_PATH}" \
     "${CONTAINER_USER_NAME}" && \
 
-  "${RESOURCES_DIR}"/scripts/debian/install-sublime-text.sh \
-  "${SUBLIME_BUILD}" \
-  "${CONTAINER_USER_NAME}" \
-  "${RESOURCES_DIR}" && \
-
   apt auto-remove && \
   apt clean && \
   rm -rf /var/lib/apt/lists/*
@@ -101,12 +90,7 @@ USER "${CONTAINER_USER_NAME}"
 
 WORKDIR "${CONTAINER_HOME}"
 
-RUN "${RESOURCES_DIR}"/scripts/setup-postgres.sh "11" "postgres" "postgres" && \
-  "${RESOURCES_DIR}"/scripts/elixir/phoenix/install.sh "${PHOENIX_INSTALL_FROM}"
-  # "${RESOURCES_DIR}"/scripts/sublime-text-3/elixir/language-server-protocol/install.sh \
-  #   "${CONTAINER_HOME}" \
-  #   "${ELIXIR_VERSION}" \
-  #   "${RESOURCES_DIR}"
+RUN "${RESOURCES_DIR}"/scripts/elixir/phoenix/install.sh "${PHOENIX_INSTALL_FROM}"
 
 VOLUME ["/var/log/postgresql", "/var/lib/postgresql", "/home/elixir/.config/sublime-text-3"]
 
