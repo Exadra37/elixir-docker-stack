@@ -291,6 +291,23 @@ HEREDOC
       echo -n $( sudo docker exec -it ${container_name} sh -c 'echo -n $(hostname -i)' )
   }
 
+  Get_Container_User_UID()
+  {
+    ############################################################################
+    # INPUT
+    ############################################################################
+
+      local docker_image="${1? Missing docker image!!!}"
+      local user_name="${2? Missing user name to get the UID!!!}"
+
+
+    ############################################################################
+    # EXECUTION
+    ############################################################################
+
+      echo -n $( sudo docker run --rm -it --user ${user_name} ${docker_image} sh -c 'echo -n $(id -u)' )
+  }
+
   Get_Docker_Image_Tag()
   {
     ############################################################################
@@ -618,7 +635,10 @@ HEREDOC
 
       local host_setup_dir="${11? Missing host dir for Elixir stack setup!!!}"
 
-      shift 11
+      local sleep_seconds="${12? Missing seconds to sleep!!!}"
+
+
+      shift 12
 
 
     ############################################################################
@@ -649,13 +669,47 @@ HEREDOC
 
           # need to give time for the container be available, before we try to
           # attach to it in the next command.
-          sleep 1
+          sleep ${sleep_seconds}
     fi
   }
 
-  Start_Database_Container()
+  Attach_To_Database_Container()
   {
-    Print_Text_With_Label "FUNCTION" "Start_Database_Container" "4"
+    Print_Text_With_Label "FUNCTION" "Attach_To_Database_Container" "4"
+
+    ############################################################################
+    # INPUT
+    ############################################################################
+
+      local database_container_name="${1? Missing database container name!!!}"
+      local database_user="${2? Missing database user!!!}"
+      local run_command="${3? Missing command to run in the container!!!}"
+
+      shift 3
+
+      local args="${@}"
+
+
+    ############################################################################
+    # EXECUTION
+    ############################################################################
+
+      Print_Text_With_Label "INVOKED COMMAND" "${run_command} ${args}" "2"
+
+      if [ "${run_command}" = "postgres" ]; then
+        Print_Fatal_Error "Postgres database is already running. You can only attach to run coomands, eg: createdb ..."
+      fi
+
+      sudo docker exec \
+        -it \
+        --user "${database_user}" \
+        "${database_container_name}" \
+        ${run_command} ${args}
+  }
+
+  Start_Or_Attach_To_Database_Container()
+  {
+    Print_Text_With_Label "FUNCTION" "Start_Or_Attach_To_Database_Container" "4"
 
     ############################################################################
     # INPUT
@@ -669,7 +723,7 @@ HEREDOC
 
       local database_data_dir="${4? Missing database data dir!!!}"
 
-      local container_user="${5? Missing container user!!!}"
+      local database_user="${5? Missing database user!!!}"
 
       local database_container_name="${6? Missing database container name!!!}"
 
@@ -684,17 +738,26 @@ HEREDOC
     # EXECUTION
     ############################################################################
 
-      mkdir -p "${database_data_dir}"
-
       Print_Text_With_Label "DATABASE CONTAINER" "${database_container_name}" "2"
+
+      if [ ! -d "${database_data_dir}" ]; then
+
+        Print_Text_With_Label "CHECK POINT" "Fixing database data dir permissions!!!" "4"
+
+        local user_uid=$( Get_Container_User_UID "${database_image}" "${database_user}" )
+
+        Print_Text_With_Label "USER UID (${database_user})" "${user_uid}" "3"
+
+        mkdir -p "${database_data_dir}"
+
+        sudo chown -R ${user_uid}:${user_uid} "${database_data_dir}/.."
+      fi
 
       if Docker_Container_Is_Running "${database_container_name}"; then
 
-        Print_Text_With_Label "CHECK POINT" "Attach to Database Container" "4"
-
-        sudo docker exec \
-          -it \
+        Attach_To_Database_Container \
           "${database_container_name}" \
+          "${database_user}" \
           ${run_command}
 
         return 0
@@ -706,15 +769,16 @@ HEREDOC
         --rm \
         "${background_mode}" \
         --hostname "${app_name}_database" \
+        --user "${database_user}" \
         --name "${database_container_name}" \
         --network "${app_network}" \
         --volume "${database_data_dir}":/var/lib/postgresql/data \
         "${database_image}" ${run_command} ${@}
   }
 
-  Create_New_Database()
+  Run_Database_Command()
   {
-    Print_Text_With_Label "FUNCTION" "Create_New_Database" "4"
+    Print_Text_With_Label "FUNCTION" "Run_Database_Command" "4"
 
     ############################################################################
     # INPUT
@@ -728,24 +792,17 @@ HEREDOC
 
       local database_data_dir="${4? Missing database data dir!!!}"
 
-      local container_user="${5? Missing container user!!!}"
+      local database_user="${5? Missing container user!!!}"
 
       local database_container_name="${6? Missing database container name!!!}"
 
-      local run_command="${7? Missing command to run in the container!!!}"
+      local start_database_command="${7? Missing command to start database!!!}"
 
-      shift 7
+      local sleep_seconds="${8? Missing seconds to sleep!!!}"
 
-      for input in "${@}"; do
-          case "${input}" in
-            new )
-              local new_app_name="${2? Missing new app name!!!}"
-              ;;
-            --no-ecto )
-              return
-              ;;
-          esac
-      done
+      local run_command="${9? Missing command to run in the container!!!}"
+
+      shift 9
 
 
     ############################################################################
@@ -754,21 +811,33 @@ HEREDOC
 
       Print_Text_With_Label "INVOKED COMMAND" "${run_command}" "4"
 
-      case "${run_command}" in
-        "mix" )
+      if ! Docker_Container_Is_Running "${database_container_name}"; then
 
-          # $ createdb -h postgres_video-hub -O postgres -U postgres testapp_dev
-          Start_Database_Container \
-            "${APP_NAME}" \
-            "${app_network}" \
-            "${database_image}" \
-            "${database_data_dir}" \
-            "${database_user}" \
-            "${database_container_name}" \
-            "-it" \
-            "createdb -h ${database_container_name} -O postgres -U postgres ${new_app_name}_dev"
-          ;;
-      esac
+        Start_Or_Attach_To_Database_Container \
+          "${app_name}" \
+          "${app_network}" \
+          "${database_image}" \
+          "${database_data_dir}" \
+          "${database_user}" \
+          "${database_container_name}" \
+          "--detach" \
+          "${start_database_command}"
+
+        Print_Text "Waiting for database engine to start..." "0"
+
+        # Giving time for Postgres to start inside the docker container
+        sleep ${sleep_seconds}
+      fi
+
+      Start_Or_Attach_To_Database_Container \
+        "${app_name}" \
+        "${app_network}" \
+        "${database_image}" \
+        "${database_data_dir}" \
+        "${database_user}" \
+        "${database_container_name}" \
+        "-it" \
+        "${run_command}"
   }
 
   Start_Observer_Container()
@@ -939,9 +1008,11 @@ HEREDOC
 
       local database_image=postgres:alpine
 
-      local database_user=root
+      local database_user=postgres
 
       local database_command=postgres
+
+      local sleep_seconds=5
 
       # We can override any of the above variables in the .elixir-docker-stack-defaults
       # file in the home directory or from the root for the project we are
@@ -1013,7 +1084,7 @@ HEREDOC
             shift 1
 
             # $ createdb -h postgres_video-hub -O postgres -U postgres testapp_dev
-            Start_Database_Container \
+            Start_Or_Attach_To_Database_Container \
               "${APP_NAME}" \
               "${app_network}" \
               "${database_image}" \
@@ -1085,6 +1156,13 @@ HEREDOC
             shift 2
             ;;
 
+          --sleep )
+            Print_Text_With_Label "OPTION" "--sleep" "4"
+
+            local sleep_seconds="${2? Missing seconds to sleep!!!}"
+            shift 2
+            ;;
+
           --verbose )
             Print_Text_With_Label "OPTION" "--verbose" "4"
 
@@ -1133,22 +1211,33 @@ HEREDOC
             shift 1
             ;;
 
-          new )
-            Print_Text_With_Label "COMMAND" "new" "4"
+          new-database )
+            Print_Text_With_Label "COMMAND" "new-database" "4"
 
-            Create_New_Database \
+            shift 1
+            local database_name="${1:-${APP_NAME}_dev}"
+
+            if [ "$#" -ge 1 ]; then
+              shift 1
+            fi
+
+            Run_Database_Command \
               "${APP_NAME}" \
               "${app_network}" \
               "${database_image}" \
               "${database_data_dir}" \
               "${database_user}" \
               "${database_container_name}" \
-              "${run_command}" \
-              ${@}
+              "${database_command}" \
+              "${sleep_seconds}" \
+              "createdb -O postgres -U postgres ${database_name}"
+
+            exit 0
           ;;
 
           observer )
-            Print_Text_With_Label "COMMAND" "observer" "4"
+            Print_Text_With_Label "
+          ;;COMMAND" "observer" "4"
 
             shift 1
 
@@ -1183,7 +1272,8 @@ HEREDOC
               "${container_user}" \
               "${port_map}" \
               "${env_file}" \
-              "${host_setup_dir}"
+              "${host_setup_dir}" \
+              "${sleep_seconds}"
 
             shift 1
 
