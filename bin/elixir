@@ -1258,6 +1258,39 @@ HEREDOC
             exit 0
             ;;
 
+          phoenix.new | phx.new )
+            Print_Text_With_Label "COMMAND" "${1}" "4"
+
+
+            if [ "${1}" != "help" ]; then
+
+              local new_app_path="${2? Missing path to create the new app!!!}"
+
+              local database_hostname="${new_app_path}_postgres"
+
+              Start_Or_Attach_To_App_Container \
+                "${image_name}" \
+                "${elixir_tag}" \
+                "${phoenix_version}" \
+                "${dockerfile}" \
+                "${APP_NAME}" \
+                "${app_network}" \
+                "${app_container_name}" \
+                "${container_user}" \
+                "${port_map}" \
+                "${env_file}" \
+                "${background_mode}" \
+                "${host_setup_dir}" \
+                "${run_command}" \
+                ${@}
+
+              sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_hostname}\"/g" ${new_app_path}/config/dev.exs
+
+              exit 0
+            fi
+
+            ;;
+
           up )
             Print_Text_With_Label "COMMAND" "up" "4"
 
