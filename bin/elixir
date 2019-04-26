@@ -47,6 +47,10 @@ Show_Help()
     -it, --interactive-tty    Run the docker container attached to the terminal.
                                 $ elixir -it up
 
+    --mix-env                 Sets the MIX_ENV var in the container.
+                              Defaults to dev.
+                                $ mix --mix-env test ecto.create
+
     -p, --publish             Map the host ports to the docker container ports.
                               Defaults to: 4000:4000 .
                                 $ elixir --publish 8000:4000
@@ -84,15 +88,20 @@ Show_Help()
                       $ elixir down
 
     iex             The Elixir IEx shell.
-                      $ elixir iex [options] <args>
+                      $ iex [options] <args>
 
     mix             The Elixir mix tool.
-                      $ elixir mix <command> [options] <args>
-                      $ elixir mix help
-                      $ elixir mix new elixir-project
-                      $ elixir mix phx.new phoenix-app
+                      $ mix <command> [options] <args>
+                      $ mix help
+                      $ mix new elixir-project
+                      $ mix phx.new phoenix-app
 
-    pgcli           A better shell for Postgres, includes uto-completion.
+    new-database    Creates a new database.
+                    Defaults to the current folder name with suffix "_dev".
+                      $ elixir new-database
+                      $ elixir new-database acme
+
+    pgcli           A better shell for Postgres, includes auto-completion.
                       $ elixir pgcli [options] <args>
 
     observer        Starts the Observer GUI from an IEx shell.
@@ -381,7 +390,9 @@ HEREDOC
 
       local phoenix_install_from="${5? Missing Phoenix install command!!!}"
 
-      local build_path="${6? Missing build path for docker image!!!}"
+      local mix_env="${6? Missing mix env value!!!}"
+
+      local build_path="${7? Missing build path for docker image!!!}"
 
 
     ############################################################################
@@ -421,6 +432,7 @@ HEREDOC
         --build-arg "ELIXIR_VERSION=${elixir_tag}" \
         --build-arg "PHOENIX_VERSION=${phoenix_version}" \
         --build-arg "PHOENIX_INSTALL_FROM=${phoenix_install_from}" \
+        --build-arg "MIX_ENV=${mix_env}" \
         --tag ${docker_image} \
         "${build_path}"
   }
@@ -509,15 +521,17 @@ HEREDOC
 
       local port_map="${9? Missing port map!!!}"
 
-      local env_file="${10? Missing the env file!!!}"
+      local mix_env="${10? Missing mix env value!!!}"
 
-      local background_mode="${11? Missing backround mode to run the container!!!}"
+      local env_file="${11? Missing the env file!!!}"
 
-      local host_setup_dir="${12? Missing host dir for Elixir stack setup!!!}"
+      local background_mode="${12? Missing backround mode to run the container!!!}"
 
-      local run_command="${13? Missing command to run in the container!!!}"
+      local host_setup_dir="${13? Missing host dir for Elixir stack setup!!!}"
 
-      shift 13
+      local run_command="${14? Missing command to run in the container!!!}"
+
+      shift 14
 
       local args="${@}"
 
@@ -592,6 +606,8 @@ HEREDOC
         ${env_file_option} \
         --env "APP_NODE_NAME=${APP_NODE_NAME}" \
         --env "APP_NODE_COOKIE=${ERLANG_COOKIE}" \
+        --env "MIX_ENV=${mix_env}" \
+        --env "XAUTHORITY=${xauth}" \
         --name "${app_container_name}" \
         --user "${container_user}" \
         --network "${app_network}" \
@@ -600,9 +616,8 @@ HEREDOC
         --volume "${app_container_name}_${tag}_var_lib_postgresql":/var/lib/postgresql \
         --volume "${app_container_name}_${tag}_var_log_postgresql":/var/log/postgresql \
         --volume "${app_container_name}_${tag}_config_sublimetext_3":/home/"${container_user}"/.config/sublime-text-3 \
-        --volume="/tmp/.X11-unix":"/tmp/.X11-unix":ro \
-        --volume="${xauth}":"${xauth}":ro \
-        --env="XAUTHORITY=${xauth}" \
+        --volume "/tmp/.X11-unix":"/tmp/.X11-unix":ro \
+        --volume "${xauth}":"${xauth}":ro \
         "${docker_image}" \
         ${run_command} ${args}
   }
@@ -631,14 +646,15 @@ HEREDOC
 
       local port_map="${9? Missing port map!!!}"
 
-      local env_file="${10? Missing the env file!!!}"
+      local mix_env="${10? Missing mix env value!!!}"
 
-      local host_setup_dir="${11? Missing host dir for Elixir stack setup!!!}"
+      local env_file="${11? Missing the env file!!!}"
 
-      local sleep_seconds="${12? Missing seconds to sleep!!!}"
+      local host_setup_dir="${12? Missing host dir for Elixir stack setup!!!}"
 
+      local sleep_seconds="${13? Missing seconds to sleep!!!}"
 
-      shift 12
+      shift 13
 
 
     ############################################################################
@@ -662,6 +678,7 @@ HEREDOC
           "${app_container_name}" \
           "${container_user}" \
           "${port_map}" \
+          "${mix_env}" \
           "${env_file}" \
           "-td" \
           "${host_setup_dir}" \
@@ -1014,6 +1031,8 @@ HEREDOC
 
       local sleep_seconds=5
 
+      local mix_env=dev
+
       # We can override any of the above variables in the .elixir-docker-stack-defaults
       # file in the home directory or from the root for the project we are
       # working on.
@@ -1076,7 +1095,7 @@ HEREDOC
 
             background_mode="--detach"
             shift 1
-            ;;
+          ;;
 
           --db | --database )
             Print_Text_With_Label "OPTION" "--db, --database" "4"
@@ -1093,7 +1112,7 @@ HEREDOC
               "${database_container_name}" \
               "--detach" \
               "${database_command}"
-            ;;
+          ;;
 
           --df | --dockerfile )
             Print_Text_With_Label "OPTION" "--df, --dockerfile" "4"
@@ -1101,14 +1120,14 @@ HEREDOC
             dockerfile="${2? Missing variant for docker image... eg: alpine}"
 
             shift 2
-            ;;
+          ;;
 
           --et | --elixir-tag )
             Print_Text_With_Label "OPTION" "--et, --elixir-tag" "4"
 
             elixir_tag="${2? Missing Elixir tag!!!}"
             shift 2
-            ;;
+          ;;
 
           -h | --help )
             Print_Text_With_Label "OPTION" "-h, --help" "4"
@@ -1121,47 +1140,52 @@ HEREDOC
             fi
 
             run_command="elixir --help"
-            ;;
+          ;;
 
           -it )
             Print_Text_With_Label "OPTION" "-it" "4"
 
             background_mode="-it"
             shift 1
-            ;;
+          ;;
 
+          --mix-env )
+            Print_Text_With_Label "OPTION" "--mix-env" "4"
+
+            local mix_env="${2? Missing mix env value. One of dev,prod or test!!!}"
+          ;;
 
           --no-cache )
             # not implemented yet
-            ;;
+          ;;
 
           -p | --publish )
             Print_Text_With_Label "OPTION" "-p, --publish" "4"
 
             port_map=${2? Missing host port map for the container, eg: 3000:3000 !!!}
             shift 2
-            ;;
+          ;;
 
           --pv | --phoenix-version )
             Print_Text_With_Label "OPTION" "--pv, --phoenix-version" "4"
 
             phoenix_version="${2? Missing Phoenix version!!!}"
             shift 2
-            ;;
+          ;;
 
           -u | --user )
             Print_Text_With_Label "OPTION" "-u, --user" "4"
 
             container_user=${2? Missing user for container!!!}
             shift 2
-            ;;
+          ;;
 
           --sleep )
             Print_Text_With_Label "OPTION" "--sleep" "4"
 
             local sleep_seconds="${2? Missing seconds to sleep!!!}"
             shift 2
-            ;;
+          ;;
 
           --verbose )
             Print_Text_With_Label "OPTION" "--verbose" "4"
@@ -1173,7 +1197,7 @@ HEREDOC
             if [ "$#" -ge 1 ]; then
               shift 1
             fi
-            ;;
+          ;;
 
           build )
             Print_Text_With_Label "COMMAND" "build" "4"
@@ -1184,17 +1208,18 @@ HEREDOC
               "${elixir_tag}" \
               "${phoenix_version}" \
               "${phoenix_install_from}" \
+              "${mix_env}" \
               "${build_path}"
 
             exit 0
-            ;;
+          ;;
 
           container-logs )
             Print_Text_With_Label "COMMAND" "container-logs" "4"
 
             sudo docker logs -f "${app_container_name}"
             exit 0
-            ;;
+          ;;
 
           down )
             Print_Text_With_Label "COMMAND" "down" "4"
@@ -1204,12 +1229,7 @@ HEREDOC
               "${database_container_name}"
 
             exit 0
-            ;;
-
-          iex | mix | pgcli )
-            run_command=${1}
-            shift 1
-            ;;
+          ;;
 
           new-database )
             Print_Text_With_Label "COMMAND" "new-database" "4"
@@ -1236,8 +1256,7 @@ HEREDOC
           ;;
 
           observer )
-            Print_Text_With_Label "
-          ;;COMMAND" "observer" "4"
+            Print_Text_With_Label "COMMAND" "observer" "4"
 
             shift 1
 
@@ -1256,11 +1275,19 @@ HEREDOC
               ${@}
 
             exit 0
-            ;;
+          ;;
+
+          pgcli )
+            Print_Text_With_Label "COMMAND" "pgcli" "4"
+
+            run_command=${1}
+            shift 1
+
+            break
+          ;;
 
           phoenix.new | phx.new )
             Print_Text_With_Label "COMMAND" "${1}" "4"
-
 
             if [ "${1}" != "help" ]; then
 
@@ -1278,6 +1305,7 @@ HEREDOC
                 "${app_container_name}" \
                 "${container_user}" \
                 "${port_map}" \
+                "${mix_env}" \
                 "${env_file}" \
                 "${background_mode}" \
                 "${host_setup_dir}" \
@@ -1288,8 +1316,7 @@ HEREDOC
 
               exit 0
             fi
-
-            ;;
+          ;;
 
           up )
             Print_Text_With_Label "COMMAND" "up" "4"
@@ -1304,6 +1331,7 @@ HEREDOC
               "${app_container_name}" \
               "${container_user}" \
               "${port_map}" \
+              "${mix_env}" \
               "${env_file}" \
               "${host_setup_dir}" \
               "${sleep_seconds}"
@@ -1321,7 +1349,9 @@ HEREDOC
             # The run command will execute inside the container:
             #   $ elixir --name video-hup_app@172.0.0.2 --cookie some-long-super-secret  -S mix phx.server"
             local run_command="elixir-server ${APP_NAME} ${ERLANG_COOKIE} ${phoenix_command}"
-            ;;
+
+            break
+          ;;
 
           shell )
             Print_Text_With_Label "COMMAND" "Shell" "4"
@@ -1332,7 +1362,9 @@ HEREDOC
             if [ "$#" -ge 1 ]; then
               shift 1
             fi
-            ;;
+
+            break
+          ;;
 
         esac
       done
@@ -1352,6 +1384,7 @@ HEREDOC
         "${app_container_name}" \
         "${container_user}" \
         "${port_map}" \
+        "${mix_env}" \
         "${env_file}" \
         "${background_mode}" \
         "${host_setup_dir}" \
