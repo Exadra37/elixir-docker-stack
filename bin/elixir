@@ -1033,22 +1033,24 @@ HEREDOC
 
       local mix_env=dev
 
+      local stack_defaults_file=.elixir-docker-stack-defaults
+
       # We can override any of the above variables in the .elixir-docker-stack-defaults
       # file in the home directory or from the root for the project we are
       # working on.
       #
       # Bear in mind that some can be override if provided as an argument or option
       # to this bash script.
-      if [ -f ~/.elixir-docker-stack-defaults ]; then
-        source ~/.elixir-docker-stack-defaults
+      if [ -f ~/"${stack_defaults_file}" ]; then
+        source ~/"${stack_defaults_file}"
       fi
 
       # It will override any variable already declared the ~/.env.elixir-docker-stack-defaults.
       #
       # Bear in mind that some can be override if provided as an argument or option
       # to this bash script.
-      if [ -f .elixir-docker-stack-defaults ]; then
-        source .elixir-docker-stack-defaults
+      if [ -f "${stack_defaults_file}" ]; then
+        source "${stack_defaults_file}"
       fi
 
       phoenix_install_from="hex phx_new ${phoenix_version}"
@@ -1059,6 +1061,7 @@ HEREDOC
       # Phoenix framework installation procedure changed from 1.4 onwards.
       if [ "${version}" \< "1.4" ]; then
         phoenix_install_from="https://github.com/phoenixframework/archives/raw/master/phx_new-${phoenix_version}.ez"
+        phoenix_command=phoenix.server
       fi
 
       # from `developer/acme/my-app` we get `~/.elixir-docker-stack/developer_acme_my-app`
@@ -1311,6 +1314,11 @@ HEREDOC
                 "${host_setup_dir}" \
                 "${run_command}" \
                 ${@}
+
+              echo "elixir_tag=${elixir_tag}" > "${new_app_path}/${stack_defaults_file}"
+              echo "phoenix_version=${phoenix_version}" >> "${new_app_path}/${stack_defaults_file}"
+              echo "phoenix_command=${phoenix_command}" >> "${new_app_path}/${stack_defaults_file}"
+              echo "dockerfile=${dockerfile}" >> "${new_app_path}/${stack_defaults_file}"
 
               sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_hostname}\"/g" ${new_app_path}/config/dev.exs
 
