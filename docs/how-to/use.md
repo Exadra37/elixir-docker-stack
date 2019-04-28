@@ -1,6 +1,10 @@
 # HOW TO USE
 
-
+The **Elixir Docker Dev Stack** is an wrapper around the normal tools we use for
+developing in Elixir, thus we can invoke `elixir`, 'mix' and `iex` without
+having them installed in our computer, and everything should work as if they
+where normally installed, because throwaway docker containers will be created to
+run this commands for us.
 
 ## CREATING THE HELLO APP
 
@@ -21,9 +25,7 @@ Let's create the database for the `hello` app
 ```bash
 mix ecto.create
 ```
-
-> **NOTE**: Did you notice something different from your normal workflow?
-
+> **NOTE**: Did you notice something different from your normal work-flow?
 
 ```bash
 mix phx.server
@@ -32,12 +34,12 @@ mix phx.server
 The `hello` app is now running on http://localhost:4000.
 
 
-### The Elixir Docker Dev Stack Role
+### The Role of the Elixir Docker Dev Stack
 
 When we run `mix phx.new hello` the **Elixir Docker Dev Stack** will handle for
 us some tasks.
 
-#### Creation of dedicated docker network
+#### Creation of a dedicated docker network
 
 The `hello` app will have a dedicated docker network, named `hello_network`, to
 be used when communicating between the containers on the stack.
@@ -49,10 +51,16 @@ c78f64609b20        hello_network       bridge              local
 
 #### Creation and setup of a dedicated docker container for the app database
 
+I have asked previously if you noticed something different in your work-flow for
+when you need to run `ecto.create` after creating a new app, and if you have not
+figured it out yet, is that with the **Elixir Docker Dev Stack** you don't have
+to manually start or ensure that you have a database up and running, because
+this is done automatically for you.
+
 The `hello` app will have a dedicated container for the database, named
 `hello_postgres`, that is created from the official docker image for Postgres.
 
-By default the database for this container will be persisted in host at the
+By default the database for this container will be persisted in host in the
 directory `${host_setup_dir}_${new_app_name}/${database_engine}/data`, that may
 translate to something like `~/.elixir-docker-dev-stack/Developer_Acme_Elixir_Phoenix_hello/postgres/data`.
 
@@ -94,7 +102,7 @@ in the root of the app project, that **MUST** be tracked in git.
 To save us from having to create this file manually, the **Elixir Docker Dev Stack**
 have created it for us when we created the `hello` app with `mix phx.new hello`.
 
-Let's take a look to what's is on the file:
+Let's take a look to what is inside the file:
 
 ```bash
 $ cat .elixir-docker-dev-stack-defaults
