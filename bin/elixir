@@ -1036,7 +1036,9 @@ HEREDOC
 
       ERLANG_COOKIE="super-long-secret-cookie"
 
-      ELIXIR_DOCKER_STACK_DIR=~/.elixir-docker-dev-stack
+      ELIXIR_DOCKER_STACK_INSTALL_DIR=${ELIXIR_DOCKER_STACK_INSTALL_DIR:-~/elixir-docker-stack}
+
+      ELIXIR_DOCKER_STACK_DATA_DIR=${ELIXIR_DOCKER_STACK_DATA_DIR:-~/.elixir-docker-stack-data}
 
 
     ############################################################################
@@ -1053,7 +1055,7 @@ HEREDOC
 
       local phoenix_command=phx.server
 
-      local build_path=~/bin/vendor/exadra37-docker/elixir/dev-cli/docker/build
+      local build_path="${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/docker/build
 
       local background_mode="-it"
 
@@ -1101,8 +1103,8 @@ HEREDOC
         phoenix_command=phoenix.server
       fi
 
-      # from `developer/acme/my-app` we get `~/.elixir-docker-stack/developer_acme_my-app`
-      local host_setup_dir="${ELIXIR_DOCKER_STACK_DIR}/${CURRENT_PATH//\//_}"
+      # from `developer/acme/my-app` we get `~/.elixir-docker-stack-data/developer_acme_my-app`
+      local host_setup_dir="${ELIXIR_DOCKER_STACK_DATA_DIR}/${CURRENT_PATH//\//_}"
 
       local container_user=elixir
 

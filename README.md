@@ -29,25 +29,38 @@
 
 ### Install
 
+Clone the project somewhere in your computer:
+
 ```bash
 git clone https://gitlab.com/exadra37-docker/elixir/elixir-docker-stack.git
 ```
 
+Now we need to set where you have installed the **Elixir Docker Stack**:
+
 ```bash
-export PATH="${PWD}/elixir-docker-stack/bin:${PATH}"
+export ELIXIR_DOCKER_STACK_INSTALL_DIR="${PWD}/elixir-docker-stack"
 ```
+
+Time to build the docker image for the **Elixir Docker Stack**:
 
 ```bash
 elixir build debian
 ```
 
-```bash
-elixir --version
-```
+Let's do some smoke tests:
 
 ```bash
-mix php.new --version
+$ elixir --version
+Erlang/OTP 21 [erts-10.3.4] [source] [64-bit] [smp:4:4] [ds:4:4:10] [async-threads:1] [hipe]
+
+Elixir 1.8.1 (compiled with Erlang/OTP 21)
+
+$ mix phx.new --version
+Phoenix v1.4.3
 ```
+
+Seems that we have a working **Elixir Docker Stack** :).
+
 
 ### Creating a New Phoenix App
 
