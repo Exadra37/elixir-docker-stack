@@ -1032,7 +1032,7 @@ HEREDOC
 
       ERLANG_COOKIE="super-long-secret-cookie"
 
-      ELIXIR_DOCKER_STACK_DIR=~/.elixir-docker-stack
+      ELIXIR_DOCKER_STACK_DIR=~/.elixir-docker-dev-stack
 
 
     ############################################################################
@@ -1055,7 +1055,7 @@ HEREDOC
 
       local port_map="4000:4000"
 
-      local env_file=".env.docker-container"
+      local env_file=".env.app-docker-container"
 
       local database_image=postgres:11-alpine
 
@@ -1069,9 +1069,9 @@ HEREDOC
 
       local mix_env=dev
 
-      local stack_defaults_file=.elixir-docker-stack-defaults
+      local stack_defaults_file=.elixir-docker-dev-stack-defaults
 
-      # We can override any of the above variables in the .elixir-docker-stack-defaults
+      # We can override any of the above variables in the .elixir-docker-dev-stack-defaults
       # file in the home directory or from the root for the project we are
       # working on.
       #
@@ -1081,7 +1081,7 @@ HEREDOC
         source ~/"${stack_defaults_file}"
       fi
 
-      # It will override any variable already declared the ~/.env.elixir-docker-stack-defaults.
+      # It will override any variable already declared the ~/.env.elixir-docker-dev-stack-defaults.
       #
       # Bear in mind that some can be override if provided as an argument or option
       # to this bash script.
