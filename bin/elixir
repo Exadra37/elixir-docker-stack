@@ -9,117 +9,125 @@ Show_Help()
 {
   cat << HEREDOC
 
-  ELIXIR DOCKER DEV STACK
+ELIXIR DOCKER DEV STACK
 
-  A docker developemnt stack that includes Elixir, Phoenix, Erlang, Oberver and Postgres.
-
-
-  Elixir CLI Usage:
-
-    elixir [options] [.exs file] [data]
+A docker developemnt stack that includes Elixir, Phoenix, Erlang, Oberver and Postgres.
 
 
-  Elixir Docker Stack Usage:
+ELIXIR CLI USAGE:
 
-    elixir [options] [command] [args]
-
-
-  Elixir Docker Stack Options:
-
-    -d, --detached            Run the docker container detached from the terminal.
-
-    --db, --database          Starts the container with the Postgres database up.
-
-    --df, --dockerfile        The dockerfile to run a container.
-                              Defaults to: debian .
-                                $
-                                $ elixir --dockerfile alpine up
-
-    --et, --elixir-tag        The Elixir version to be used for the docker tag,
-                              Defaults to the latest Elixir version: slim
-                                $ elixir --elixir-tag 1.3.4:slim
-
-    -h, --help                Shows the help for the Elixir CLI and Stack.
-                                $ elixir -h
-                                $ elixir --help
-                                $ elixir --help stack
-
-    -it, --interactive-tty    Run the docker container attached to the terminal.
-                                $ elixir -it up
-
-    --mix-env                 Sets the MIX_ENV var in the container.
-                              Defaults to dev.
-                                $ mix --mix-env test ecto.create
-
-    -p, --publish             Map the host ports to the docker container ports.
-                              Defaults to: 4000:4000 .
-                                $ elixir --publish 8000:4000
-
-    --pv, --phoenix-version   The Phoenix version to be installed.
-                              Defaults to the last release, eg: 1.4.3 .
-                                $ elixir --phoenix-version 1.3.4 up
-
-    -u, --user                The user we want to run inside the container,
-                              Defaults to current user, eg: 1000 .
-                                $ elixir --user 0 shell
-
-    --verbose <level>         Enables verbose output for the docker stack.
-                              Defaults to level 0, and can go until level 4.
-                                $ elixir --verbose 1 up
-                                $ elixir --verbose 2 shell
-                                $ elixir --verbose 3 observer
-                                $ elixir --verbose 4 build
+  elixir [options] [.exs file] [data]
 
 
-  Elixir Docker Stack Commands:
+ELIXIR DOCKER DEV STACK USAGE:
 
-    <no-command>    Runs Elixir inside the container as it would in the host.
-                      $ elixir --help
+  elixir [options] [command] [args]
 
-    build           Builds the docker image for the given dodkerfile.
-                    Defaults to build from: debian .
-                      $ elixir build
-                      $ elixir build alpine
 
-    container-logs  Shows a tail -f of the container logs.
-                      $ elixir container-logs
+ELIXIR DOCKER DEV STACK OPTIONS:
 
-    down            Stops and removes the running container.
-                      $ elixir down
+  -d, --detached            Run the docker container detached from the terminal.
 
-    iex             The Elixir IEx shell.
-                      $ iex [options] <args>
+  --db, --database          Starts the container with the Postgres database up.
 
-    mix             The Elixir mix tool.
-                      $ mix <command> [options] <args>
-                      $ mix help
-                      $ mix new elixir-project
-                      $ mix phx.new phoenix-app
+  --df, --dockerfile        The dockerfile to run a container.
+                            Defaults to: debian .
+                              $
+                              $ elixir --dockerfile alpine up
 
-    new-database    Creates a new database.
-                    Defaults to the current folder name with suffix "_dev".
-                      $ elixir new-database
-                      $ elixir new-database acme
+  --et, --elixir-tag        The Elixir version to be used for the docker tag,
+                            Defaults to the latest Elixir version: slim
+                              $ elixir --elixir-tag 1.3.4:slim
 
-    pgcli           A better shell for Postgres, includes auto-completion.
-                      $ elixir pgcli [options] <args>
+  -h, --help                Shows the help for the Elixir CLI and Stack.
+                              $ elixir -h
+                              $ elixir --help
+                              $ elixir --help stack
 
-    observer        Starts the Observer GUI from an IEx shell.
-                      $ elixir observer
+  -it, --interactive-tty    Run the docker container attached to the terminal.
+                              $ elixir -it up
 
-    observer-cli    Allows to start from IEx the Observer CLI(like Linux HTOP).
-                      $ elixir observer-cli
+  --mix-env                 Sets the MIX_ENV var in the container.
+                            Defaults to dev.
+                              $ mix --mix-env test ecto.create
 
-    up              Starts the Elixir docker stack.
-                      $ elixir up
-                      $ elixir --db up
-                      $ elixir --dockerfile alpine up
-                      $ elixir -it --publish 8000:4000 up
-                      $ elixir --elixir-tag 1.3 --phoenix-version 1.3.4 --db up
+  -p, --publish             Map the host ports to the docker container ports.
+                            Defaults to: 4000:4000 .
+                              $ elixir --publish 8000:4000
 
-    shell           A shell inside the container for the Elixir docker stack.
-                      $ elixir shell
-                      $ elixir -u 0 shell
+  --pv, --phoenix-version   The Phoenix version to be installed.
+                            Defaults to the last release, eg: 1.4.3 .
+                              $ elixir --phoenix-version 1.3.4 up
+
+  -u, --user                The user we want to run inside the container,
+                            Defaults to current user, eg: 1000 .
+                              $ elixir --user 0 shell
+
+  --verbose <level>         Enables verbose output for the docker stack.
+                            Defaults to level 0, and can go until level 4.
+                              $ elixir --verbose 1 up
+                              $ elixir --verbose 2 shell
+                              $ elixir --verbose 3 observer
+                              $ elixir --verbose 4 build
+
+  --wa, --wait-dummy-app          Seconds to wait for the app dummy container to be ready.
+                            Defaults to 1 second.
+                              $ elixir --wait-dummy-app 3 up
+
+  --wd, --wait-database     Seconds to wait for the database is up and running.
+                            Defaults to 5 seconds.
+                              $ elixir --wait-database 10 new-database myapp_test
+
+
+ELIXIR DOCKER DEV STACK COMMANDS:
+
+  <no-command>    Runs Elixir inside the container as it would in the host.
+                    $ elixir --help
+
+  build           Builds the docker image for the given dodkerfile.
+                  Defaults to build from: debian .
+                    $ elixir build
+                    $ elixir build alpine
+
+  container-logs  Shows a tail -f of the container logs.
+                    $ elixir container-logs
+
+  down            Stops and removes the running container.
+                    $ elixir down
+
+  iex             The Elixir IEx shell.
+                    $ iex [options] <args>
+
+  mix             The Elixir mix tool.
+                    $ mix <command> [options] <args>
+                    $ mix help
+                    $ mix new elixir-project
+                    $ mix phx.new phoenix-app
+
+  new-database    Creates a new database.
+                  Defaults to the current folder name with suffix "_dev".
+                    $ elixir new-database
+                    $ elixir new-database acme
+
+  pgcli           A better shell for Postgres, includes auto-completion.
+                    $ elixir pgcli [options] <args>
+
+  observer        Starts the Observer GUI from an IEx shell.
+                    $ elixir observer
+
+  observer-cli    Allows to start from IEx the Observer CLI(like Linux HTOP).
+                    $ elixir observer-cli
+
+  up              Starts the Elixir docker stack.
+                    $ elixir up
+                    $ elixir --db up
+                    $ elixir --dockerfile alpine up
+                    $ elixir -it --publish 8000:4000 up
+                    $ elixir --elixir-tag 1.3 --phoenix-version 1.3.4 --db up
+
+  shell           A shell inside the container for the Elixir docker stack.
+                    $ elixir shell
+                    $ elixir -u 0 shell
 
 HEREDOC
 
@@ -676,7 +684,7 @@ HEREDOC
 
       local host_setup_dir="${12? Missing host dir for Elixir stack setup!!!}"
 
-      local sleep_seconds="${13? Missing seconds to sleep!!!}"
+      local seconds_to_wait_dummy_app_is_ready="${13? Missing seconds to wait until dummy app container is ready!!!}"
 
       shift 13
 
@@ -710,7 +718,7 @@ HEREDOC
 
           # need to give time for the container be available, before we try to
           # attach to it in the next command.
-          sleep ${sleep_seconds}
+          sleep ${seconds_to_wait_dummy_app_is_ready}
     fi
   }
 
@@ -738,7 +746,8 @@ HEREDOC
       Print_Text_With_Label "INVOKED COMMAND" "${run_command} ${args}" "2"
 
       if [ "${run_command}" = "postgres" ]; then
-        Print_Fatal_Error "Postgres database is already running. You can only attach to run coomands, eg: createdb ..."
+        Print_Text_With_Label "WARNING" "Postgres database is already running. You can only attach to run commands, eg: createdb ..." "1"
+        return
       fi
 
       sudo docker exec \
@@ -839,7 +848,7 @@ HEREDOC
 
       local start_database_command="${7? Missing command to start database!!!}"
 
-      local sleep_seconds="${8? Missing seconds to sleep!!!}"
+      local seconds_to_wait_database_is_running="${8? Missing seconds to wait database to be running!!!}"
 
       local run_command="${9? Missing command to run in the container!!!}"
 
@@ -866,8 +875,7 @@ HEREDOC
 
         Print_Text "Waiting for database engine to start..." "0"
 
-        # Giving time for Postgres to start inside the docker container
-        sleep ${sleep_seconds}
+        sleep ${seconds_to_wait_database_is_running}
       fi
 
       Start_Or_Attach_To_Database_Container \
@@ -1055,7 +1063,9 @@ HEREDOC
 
       local database_command=postgres
 
-      local sleep_seconds=5
+      local seconds_to_wait_dummy_app_is_ready=1
+
+      local seconds_to_wait_database_is_running=5
 
       local mix_env=dev
 
@@ -1121,8 +1131,8 @@ HEREDOC
       for input in "${@}"; do
         case "${input}" in
 
-          -d | --detached )
-            Print_Text_With_Label "OPTION" "-d, --detached" "4"
+          -d | --detach )
+            Print_Text_With_Label "OPTION" "-d, --detach" "4"
 
             background_mode="--detach"
             shift 1
@@ -1210,13 +1220,6 @@ HEREDOC
             shift 2
           ;;
 
-          --sleep )
-            Print_Text_With_Label "OPTION" "--sleep" "4"
-
-            local sleep_seconds="${2? Missing seconds to sleep!!!}"
-            shift 2
-          ;;
-
           --verbose )
             Print_Text_With_Label "OPTION" "--verbose" "4"
 
@@ -1227,6 +1230,20 @@ HEREDOC
             if [ "$#" -ge 1 ]; then
               shift 1
             fi
+          ;;
+
+          --wa | --wait-dummy-app )
+            Print_Text_With_Label "OPTION" "--wa, --wait-dummy-app" "4"
+
+            local seconds_to_wait_dummy_app_is_ready="${2? Missing seconds to wait for dummy app container to be ready!!!}"
+            shift 2
+          ;;
+
+          --wd | --wait-database )
+            Print_Text_With_Label "OPTION" "--wd, --wait-database" "4"
+
+            local seconds_to_wait_database_is_running="${2? Missing seconds to wait for the database to be running!!!}"
+            shift 2
           ;;
 
           build )
@@ -1279,7 +1296,7 @@ HEREDOC
               "${database_user}" \
               "${database_container_name}" \
               "${database_command}" \
-              "${sleep_seconds}" \
+              "${seconds_to_wait_database_is_running}" \
               "createdb -O postgres -U postgres ${database_name}"
 
             exit 0
@@ -1384,6 +1401,8 @@ HEREDOC
           up )
             Print_Text_With_Label "COMMAND" "up" "4"
 
+            shift 1
+
             if Is_App_With_Database "${APP_NAME}"; then
 
               Start_Or_Attach_To_Database_Container \
@@ -1410,9 +1429,8 @@ HEREDOC
               "${mix_env}" \
               "${env_file}" \
               "${host_setup_dir}" \
-              "${sleep_seconds}"
+              "${seconds_to_wait_dummy_app_is_ready}"
 
-            shift 1
 
             local phoenix_command="${1:-${phoenix_command}}"
 
