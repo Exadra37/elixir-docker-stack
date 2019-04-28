@@ -25,6 +25,60 @@
     + [Contributing](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTING.md)
     + [License](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/LICENSE)
 
+## QUICK START
+
+### Install
+
+```bash
+git clone https://gitlab.com/exadra37-docker/elixir/elixir-docker-stack.git
+```
+
+```bash
+export PATH="${PWD}/elixir-docker-stack/bin:${PATH}"
+```
+
+```bash
+elixir build debian
+```
+
+```bash
+elixir --version
+```
+
+```bash
+mix php.new --version
+```
+
+### Creating a New Phoenix App
+
+Following along the official [Up and Running](https://hexdocs.pm/phoenix/up_and_running.html) for the Phoenix framework.
+
+Creating a new Phoenix app:
+
+```bash
+mix phx.new hello
+```
+
+Now we need to get inside the directory for the `hello` app:
+
+```bash
+cd hello
+```
+
+Let's create the database for the `hello` app:
+
+```bash
+mix ecto.create
+```
+
+Time to start the Phoenix server:
+
+```bash
+mix phx.server
+```
+
+The `hello` app is now running on http://localhost:4000.
+
 
 ## SUPPORT DEVELOPMENT
 

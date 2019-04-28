@@ -1,7 +1,7 @@
 # HOW TO USE
 
-The **Elixir Docker Dev Stack** is an wrapper around the normal tools we use for
-developing in Elixir, thus we can invoke `elixir`, 'mix' and `iex` without
+The **Elixir Docker Stack** is a wrapper around the normal tools we use for
+developing in Elixir, thus we can invoke `elixir`, `mix` and `iex` without
 having them installed in our computer, and everything should work as if they
 where normally installed, because throwaway docker containers will be created to
 run this commands for us.
@@ -34,9 +34,9 @@ mix phx.server
 The `hello` app is now running on http://localhost:4000.
 
 
-### The Role of the Elixir Docker Dev Stack
+### The Role of the Elixir Docker Stack
 
-When we run `mix phx.new hello` the **Elixir Docker Dev Stack** will handle for
+When we run `mix phx.new hello` the **Elixir Docker Stack** will handle for
 us some tasks.
 
 #### Creation of a dedicated docker network
@@ -53,7 +53,7 @@ c78f64609b20        hello_network       bridge              local
 
 I have asked previously if you noticed something different in your work-flow for
 when you need to run `ecto.create` after creating a new app, and if you have not
-figured it out yet, is that with the **Elixir Docker Dev Stack** you don't have
+figured it out yet, is that with the **Elixir Docker Stack** you don't have
 to manually start or ensure that you have a database up and running, because
 this is done automatically for you.
 
@@ -62,13 +62,13 @@ The `hello` app will have a dedicated container for the database, named
 
 By default the database for this container will be persisted in host in the
 directory `${host_setup_dir}_${new_app_name}/${database_engine}/data`, that may
-translate to something like `~/.elixir-docker-dev-stack/Developer_Acme_Elixir_Phoenix_hello/postgres/data`.
+translate to something like `~/.elixir-docker-stack/Developer_Acme_Elixir_Phoenix_hello/postgres/data`.
 
 Once we run the database in a dedicated container we need to ensure that the
 `hello` app is able to communicate with it, and for that we need to adjust the
 `hostname:` in `config/dev.exs` to point to `hello_postgres`, instead of the
 default of `localhost`. In order to save us from having to do it manually, the
-**Elixir Docker Dev Stack** updates the `hello` app config for us:
+**Elixir Docker Stack** updates the `hello` app config for us:
 
 ```bash
 $ cat config/dev.exs | tail -8
@@ -92,20 +92,20 @@ database container.
 
 #### Pinning the defaults
 
-Each time we run the **Elixir Docker Dev Stack** for the `hello` app we want to
+Each time we run the **Elixir Docker Stack** for the `hello` app we want to
 ensure that we do it exactly with the same defaults, so that we have parity in
 the development work-flow across computers and developers.
 
-To achieve this we will use a the file named `.elixir-docker-dev-stack-defaults`
+To achieve this we will use a the file named `.elixir-docker-stack-defaults`
 in the root of the app project, that **MUST** be tracked in git.
 
-To save us from having to create this file manually, the **Elixir Docker Dev Stack**
+To save us from having to create this file manually, the **Elixir Docker Stack**
 have created it for us when we created the `hello` app with `mix phx.new hello`.
 
 Let's take a look to what is inside the file:
 
 ```bash
-$ cat .elixir-docker-dev-stack-defaults
+$ cat .elixir-docker-stack-defaults
 elixir_tag=1.8-slim
 phoenix_version=1.4.3
 phoenix_command=phx.server
@@ -120,10 +120,71 @@ As we can see we have pinned some defaults, and the most important ones are
 `elixir_tag`, that pins the docker image to be used by this app, and
 `phoenix_version` that pins the Phoenix version.
 
-So this file guarantees that the **Elixir Docker Dev Stack** always use the same
+So this file guarantees that the **Elixir Docker Stack** always use the same
 defaults for the `hello` App, unless we decide to override them on a command
 invocation.
 
+
+## CREATING AN APP WITH SPECIFIC VERSION OF ELIXIR AND PHOENIX
+
+Let's imagine that you want to quickly try an old app that is stuck on Elixir
+version `1.4` and Phoenix version `1.3.4`, all you need to do is to...
+
+Let's imagine that you bought a book and discovered that the code examples on it
+only work on Elixir `1.4` and Phoenix `1.3.4`, and instead of figuring out how
+to make the code work for the current versions, you can quickly create a throwaway
+docker stack for it:
+
+```bash
+mix --elixir-tag 1.4.5-slim --phoenix-version 1.3.4 phx.new myapp
+```
+
+The Elixir tag option is the docker tag we want to retrieve for the official
+Elixir docker image, where `1.4.5` is obviously the Elixir version and `-slim`
+is the flavour for the Docker image, that in this case means the smallest image
+for Debian builds.
+
+Lets check that we have the new app working with the version we required for
+Elixir:
+
+```bash
+$ cd myapp && elixir --version
+Erlang/OTP 19 [erts-8.3.5.7] [source] [64-bit] [smp:4:4] [ds:4:4:10] [async-threads:10] [hipe] [kernel-poll:false]
+
+Elixir 1.4.5
+```
+
+and for Phoenix the version is:
+
+```bash
+mix phx.new --version
+Phoenix v1.3.4
+```
+
+If you are curious about the docker image we have created, check it with:
+
+```bash
+$ sudo docker image ls | head -2
+REPOSITORY                       TAG                       IMAGE ID            CREATED             SIZE
+exadra37/elixir-phoenix          1.4.5-slim-1.3.4-debian   6fba76ed6d7c        5 minutes ago       969MB
+```
+
+Finally lets confirm that we have the defaults pinned:
+
+```bash
+$ cat .elixir-docker-stack-defaults
+elixir_tag=1.4.5-slim
+phoenix_version=1.3.4
+phoenix_command=phx.server
+dockerfile=debian
+database_image=postgres:11-alpine
+database_user=postgres
+database_data_dir=/home/exadra37/.elixir-docker-stack/Developer_Acme_Elixir_Phoenix_myapp/postgres/data
+database_command=postgres
+```
+
+Now you can follow the same procedures of the `hello` app to have `myapp` up and
+running on http://localhost:4000.
 
 ---
 

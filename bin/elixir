@@ -9,7 +9,7 @@ Show_Help()
 {
   cat << HEREDOC
 
-ELIXIR DOCKER DEV STACK
+ELIXIR DOCKER STACK
 
 A docker developemnt stack that includes Elixir, Phoenix, Erlang, Oberver and Postgres.
 
@@ -19,12 +19,12 @@ ELIXIR CLI USAGE:
   elixir [options] [.exs file] [data]
 
 
-ELIXIR DOCKER DEV STACK USAGE:
+ELIXIR DOCKER STACK USAGE:
 
   elixir [options] [command] [args]
 
 
-ELIXIR DOCKER DEV STACK OPTIONS:
+ELIXIR DOCKER STACK OPTIONS:
 
   -d, --detached            Run the docker container detached from the terminal.
 
@@ -79,7 +79,7 @@ ELIXIR DOCKER DEV STACK OPTIONS:
                               $ elixir --wait-database 10 new-database myapp_test
 
 
-ELIXIR DOCKER DEV STACK COMMANDS:
+ELIXIR DOCKER STACK COMMANDS:
 
   <no-command>    Runs Elixir inside the container as it would in the host.
                     $ elixir --help
@@ -420,11 +420,11 @@ HEREDOC
 
       local phoenix_version="${4? Missing Phoenix version!!!}"
 
-      local phoenix_install_from="${5? Missing Phoenix install command!!!}"
+      local mix_env="${5? Missing mix env value!!!}"
 
-      local mix_env="${6? Missing mix env value!!!}"
+      local build_path="${6? Missing build path for docker image!!!}"
 
-      local build_path="${7? Missing build path for docker image!!!}"
+      shift 6
 
 
     ############################################################################
@@ -454,16 +454,13 @@ HEREDOC
 
       Print_Text_With_Label "BUILDING FROM DOCKERFILE" "${dockerfile_path}" "2"
 
-      Print_Text_With_Label "INSTALL PHOENIX" "${phoenix_install_from}" "3"
-
       sudo docker build \
         --no-cache \
         --force-rm \
         --pull \
         --file "${dockerfile_path}" \
-        --build-arg "ELIXIR_VERSION=${elixir_tag}" \
+        --build-arg "ELIXIR_TAG=${elixir_tag}" \
         --build-arg "PHOENIX_VERSION=${phoenix_version}" \
-        --build-arg "PHOENIX_INSTALL_FROM=${phoenix_install_from}" \
         --build-arg "MIX_ENV=${mix_env}" \
         --tag ${docker_image} \
         "${build_path}"
@@ -561,9 +558,11 @@ HEREDOC
 
       local host_setup_dir="${13? Missing host dir for Elixir stack setup!!!}"
 
-      local run_command="${14? Missing command to run in the container!!!}"
+      local build_path="${14? Missing build path for docker image!!!}"
 
-      shift 14
+      local run_command="${15? Missing command to run in the container!!!}"
+
+      shift 15
 
       local args="${@}"
 
@@ -593,9 +592,15 @@ HEREDOC
 
         Print_Text_With_Label "DOCKERFILE" "${dockerfile}" "0"
 
-        Print_Fatal_Error "Missing docker image for >>> ${app_name} <<< APP. Build it with: elixir build ${dockerfile}"
+        Print_Text_With_Label "WARNING" "Missing docker image for >>> ${app_name} <<< APP. Please wait until we build the image." "1"
 
-        exit 1
+        Build_Docker_Image \
+          "${image_name}" \
+          "${dockerfile}" \
+          "${elixir_tag}" \
+          "${phoenix_version}" \
+          "${mix_env}" \
+          "${build_path}"
       fi
 
       if Docker_Container_Is_Running "${app_container_name}"; then
@@ -606,10 +611,6 @@ HEREDOC
           "${background_mode}" \
           "${run_command}" \
           ${@}
-
-        # if [ "${background_mode}" == "-it" ]; then
-        #   sudo docker stop "${app_container_name}"
-        # fi
 
         exit 0
       fi
@@ -684,9 +685,11 @@ HEREDOC
 
       local host_setup_dir="${12? Missing host dir for Elixir stack setup!!!}"
 
-      local seconds_to_wait_dummy_app_is_ready="${13? Missing seconds to wait until dummy app container is ready!!!}"
+      local build_path="${13? Missing build path for docker image!!!}"
 
-      shift 13
+      local seconds_to_wait_dummy_app_is_ready="${14? Missing seconds to wait until dummy app container is ready!!!}"
+
+      shift 14
 
 
     ############################################################################
@@ -714,6 +717,7 @@ HEREDOC
           "${env_file}" \
           "-td" \
           "${host_setup_dir}" \
+          "${build_path}" \
           ""
 
           # need to give time for the container be available, before we try to
@@ -1069,9 +1073,9 @@ HEREDOC
 
       local mix_env=dev
 
-      local stack_defaults_file=.elixir-docker-dev-stack-defaults
+      local stack_defaults_file=.elixir-docker-stack-defaults
 
-      # We can override any of the above variables in the .elixir-docker-dev-stack-defaults
+      # We can override any of the above variables in the .elixir-docker-stack-defaults
       # file in the home directory or from the root for the project we are
       # working on.
       #
@@ -1081,7 +1085,7 @@ HEREDOC
         source ~/"${stack_defaults_file}"
       fi
 
-      # It will override any variable already declared the ~/.env.elixir-docker-dev-stack-defaults.
+      # It will override any variable already declared the ~/.env.elixir-docker-stack-defaults.
       #
       # Bear in mind that some can be override if provided as an argument or option
       # to this bash script.
@@ -1089,14 +1093,11 @@ HEREDOC
         source "${stack_defaults_file}"
       fi
 
-      phoenix_install_from="hex phx_new ${phoenix_version}"
-
       # from 1.4.0 assigns 1.4
-      version="${phoenix_version%.*}"
+      local phoenix_major_version="${phoenix_version%.*}"
 
       # Phoenix framework installation procedure changed from 1.4 onwards.
-      if [ "${version}" \< "1.4" ]; then
-        phoenix_install_from="https://github.com/phoenixframework/archives/raw/master/phx_new-${phoenix_version}.ez"
+      if [ "${phoenix_major_version}" \< "1.4" ]; then
         phoenix_command=phoenix.server
       fi
 
@@ -1152,6 +1153,13 @@ HEREDOC
               "${database_container_name}" \
               "--detach" \
               "${database_command}"
+          ;;
+
+          --db-image | --database-image )
+            Print_Text_With_Label "OPTION" "--df, --dockerfile" "4"
+
+            local database_image="${2? Missing database image to use!!!}"
+            shift 2
           ;;
 
           --df | --dockerfile )
@@ -1254,7 +1262,6 @@ HEREDOC
               "${2:-${dockerfile}}" \
               "${elixir_tag}" \
               "${phoenix_version}" \
-              "${phoenix_install_from}" \
               "${mix_env}" \
               "${build_path}"
 
@@ -1336,66 +1343,71 @@ HEREDOC
           phoenix.new | phx.new )
             Print_Text_With_Label "COMMAND" "${1}" "4"
 
-            if [ "${1}" != "help" ]; then
+            # break parsing the input if --version option is given.
+            case "${2:-}" in
+              --version )
+                break
+              ;;
+            esac
 
-              local new_app_name="${2? Missing path to create the new app!!!}"
+            local new_app_name="${2? Missing path to create the new app!!!}"
 
-              local new_app_network="${new_app_name}_network"
+            local new_app_network="${new_app_name}_network"
 
-              local database_hostname="${new_app_name}_postgres"
+            local database_hostname="${new_app_name}_postgres"
 
-              local database_data_dir="${host_setup_dir}_${new_app_name}/${database_engine}/data"
+            local database_data_dir="${host_setup_dir}_${new_app_name}/${database_engine}/data"
 
-              Start_Or_Attach_To_App_Container \
-                "${image_name}" \
-                "${elixir_tag}" \
-                "${phoenix_version}" \
-                "${dockerfile}" \
-                "${APP_NAME}" \
-                "${app_network}" \
-                "${app_container_name}" \
-                "${container_user}" \
-                "${port_map}" \
-                "${mix_env}" \
-                "${env_file}" \
-                "${background_mode}" \
-                "${host_setup_dir}" \
-                "${run_command}" \
-                ${@}
+            Start_Or_Attach_To_App_Container \
+              "${image_name}" \
+              "${elixir_tag}" \
+              "${phoenix_version}" \
+              "${dockerfile}" \
+              "${APP_NAME}" \
+              "${app_network}" \
+              "${app_container_name}" \
+              "${container_user}" \
+              "${port_map}" \
+              "${mix_env}" \
+              "${env_file}" \
+              "${background_mode}" \
+              "${host_setup_dir}" \
+              "${build_path}" \
+              "${run_command}" \
+              ${@}
+
+            # Pinning defaults to be used each time we run the Elixir Docker Stack
+            echo "elixir_tag=${elixir_tag}" > "${new_app_name}/${stack_defaults_file}"
+            echo "phoenix_version=${phoenix_version}" >> "${new_app_name}/${stack_defaults_file}"
+            echo "phoenix_command=${phoenix_command}" >> "${new_app_name}/${stack_defaults_file}"
+            echo "dockerfile=${dockerfile}" >> "${new_app_name}/${stack_defaults_file}"
+
+            Create_Docker_Network_If_Not_Exists "${new_app_network}"
+            sudo docker network rm "${app_network}"
+
+            if Is_App_With_Database "${new_app_name}"; then
 
               # Pinning defaults to be used each time we run the Elixir Docker Stack
-              echo "elixir_tag=${elixir_tag}" > "${new_app_name}/${stack_defaults_file}"
-              echo "phoenix_version=${phoenix_version}" >> "${new_app_name}/${stack_defaults_file}"
-              echo "phoenix_command=${phoenix_command}" >> "${new_app_name}/${stack_defaults_file}"
-              echo "dockerfile=${dockerfile}" >> "${new_app_name}/${stack_defaults_file}"
+              echo "database_image=${database_image}" >> "${new_app_name}/${stack_defaults_file}"
+              echo "database_user=${database_user}" >> "${new_app_name}/${stack_defaults_file}"
+              echo "database_data_dir=${database_data_dir}" >> "${new_app_name}/${stack_defaults_file}"
+              echo "database_command=${database_command}" >> "${new_app_name}/${stack_defaults_file}"
 
-              Create_Docker_Network_If_Not_Exists "${new_app_network}"
-              sudo docker network rm "${app_network}"
+              # Fix the database hostname in the APp configuration file.
+              sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_hostname}\"/g" ${new_app_name}/config/dev.exs
 
-              if Is_App_With_Database "${new_app_name}"; then
-
-                # Pinning defaults to be used each time we run the Elixir Docker Stack
-                echo "database_image=${database_image}" >> "${new_app_name}/${stack_defaults_file}"
-                echo "database_user=${database_user}" >> "${new_app_name}/${stack_defaults_file}"
-                echo "database_data_dir=${database_data_dir}" >> "${new_app_name}/${stack_defaults_file}"
-                echo "database_command=${database_command}" >> "${new_app_name}/${stack_defaults_file}"
-
-                # Fix the database hostname in the APp configuration file.
-                sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_hostname}\"/g" ${new_app_name}/config/dev.exs
-
-                Start_Or_Attach_To_Database_Container \
-                  "${new_app_name}" \
-                  "${new_app_network}" \
-                  "${database_image}" \
-                  "${database_data_dir}" \
-                  "${database_user}" \
-                  "${new_app_name}_${database_engine}" \
-                  "--detach" \
-                  "${database_command}"
-              fi
-
-              exit 0
+              Start_Or_Attach_To_Database_Container \
+                "${new_app_name}" \
+                "${new_app_network}" \
+                "${database_image}" \
+                "${database_data_dir}" \
+                "${database_user}" \
+                "${new_app_name}_${database_engine}" \
+                "--detach" \
+                "${database_command}"
             fi
+
+            exit 0
           ;;
 
           up )
@@ -1429,6 +1441,7 @@ HEREDOC
               "${mix_env}" \
               "${env_file}" \
               "${host_setup_dir}" \
+              "${build_path}" \
               "${seconds_to_wait_dummy_app_is_ready}"
 
 
@@ -1482,6 +1495,7 @@ HEREDOC
         "${env_file}" \
         "${background_mode}" \
         "${host_setup_dir}" \
+        "${build_path}" \
         "${run_command}" \
         ${@}
   }

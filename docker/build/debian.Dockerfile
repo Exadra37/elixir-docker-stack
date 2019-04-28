@@ -1,6 +1,6 @@
-ARG ELIXIR_VERSION=1.8-slim
+ARG ELIXIR_TAG=1.8-slim
 
-FROM elixir:${ELIXIR_VERSION}
+FROM elixir:${ELIXIR_TAG}
 
 ARG CONTAINER_USER_NAME="elixir"
 ARG CONTAINER_UID="1000"
@@ -21,7 +21,6 @@ ARG RESOURCES_DIR="/docker-build-resources"
 
 ARG MIX_ENV=dev
 ARG PHOENIX_VERSION=1.4.3
-ARG PHOENIX_INSTALL_FROM="hex phx_new ${PHOENIX_VERSION}"
 ARG NODE_VERSION=10
 
 ENV DEBIAN_FRONTEND="noninteractive" \
@@ -89,7 +88,7 @@ USER "${CONTAINER_USER_NAME}"
 
 WORKDIR "${CONTAINER_HOME}"
 
-RUN "${RESOURCES_DIR}"/scripts/elixir/phoenix/install.sh "${PHOENIX_INSTALL_FROM}"
+RUN "${RESOURCES_DIR}"/scripts/elixir/phoenix/install.sh "${PHOENIX_VERSION}"
 
 VOLUME ["/var/log/postgresql", "/var/lib/postgresql", "/home/elixir/.config/sublime-text-3"]
 
