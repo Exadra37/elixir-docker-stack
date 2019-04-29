@@ -42,7 +42,7 @@ created to run this commands for us.
 
 # QUICK START
 
-## INSTALL
+## Install
 
 Clone the project somewhere in your computer:
 
@@ -79,7 +79,7 @@ Seems that we have a working **Elixir Docker Stack** :).
 [Menu](#menu)
 
 
-## CREATING A NEW PHOENIX APP
+## Creating a New Phoenix App
 
 Following along the official [Up and Running](https://hexdocs.pm/phoenix/up_and_running.html) for the Phoenix framework.
 
@@ -114,7 +114,7 @@ The `hello` app is now running on http://localhost:4000.
 [Menu](#menu)
 
 
-## CREATING A NEW APP WITH A SPECIFIC VERSION OF ELIXIR AND PHOENIX
+## Creating a New App With a Specific Version of Elixir and Phoenix
 
 Let's imagine that you want to quickly try an old app that is stuck on Elixir
 version `1.4` and Phoenix version `1.3.4`, all you need to do is to...
@@ -180,6 +180,7 @@ running on http://localhost:4000.
 
 # ELIXIR DOCKER STACK EXPLAINED
 
+
 ## Why Exists?
 
 Initially was supposed to be only a simple docker image for Elixir with my
@@ -204,6 +205,7 @@ reasons for it are:
   have suffered from "sandbox" escape in the past.
 
 [Menu](#menu)
+
 
 ## What is It?
 
@@ -243,6 +245,7 @@ The most useful tools included in the bin path:
 
 [Menu](#menu)
 
+
 ## What it does for us under the hood?
 
 When we run `mix phx.new hello` the **Elixir Docker Stack** will handle for
@@ -250,7 +253,6 @@ us some tasks, like creating the docker network, starting the database server,
 pinning the defaults and updating the app configuration.
 
 [Menu](#menu)
-
 
 ### Creation of a dedicated docker network
 
@@ -306,7 +308,6 @@ database container.
 
 
 [Menu](#menu)
-
 
 ### Pinning the defaults
 
