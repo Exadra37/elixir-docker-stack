@@ -10,7 +10,7 @@ run this commands for us.
 # MENU
 
 * **QUICK START**
-    + [Install](#throwaway-install)
+    + [Install](#install)
     + [Creating a New Phoenix App](#creating-a-new-phoenix-app)
     + [Creating a New App With a Specific Version of Elixir and Phoenix](#creating-a-new-app-with-a-specific-version-of-elixir-and-phoenix)
 * **ELIXIR DOCKER STACK EXPLAINED**
@@ -178,6 +178,20 @@ running on http://localhost:4000.
 
 ## Why Exists?
 
+Initially was supposed to be only a simple docker image for Elixir with my
+favourite shell and with a unprivileged user inside the docker container, but
+end-up to grow up to be a full development stack for Elixir.
+
+I am a huge fan of using Docker work-flow in development, and some of the
+reasons for it are:
+
+* more secure, once docker acts like a sandbox.
+* same development environment across computers and developers working on the
+  same project.
+* a cleaner operating system, once all my development tooling is running in
+  docker containers, thus I can upgrade my OS at any-time with less fuss.
+* I can run as many versions as I want of the tools I use, and throw away them
+  when I am done, without impacting my operating system.
 
 [Menu](#menu)
 
