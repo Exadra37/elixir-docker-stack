@@ -1,10 +1,10 @@
 # ELIXIR DOCKER STACK
 
 The **Elixir Docker Stack** is a wrapper around the normal tools we use for
-developing in Elixir, thus we can invoke `elixir`, `mix` and `iex` without
-having them installed in our computer, and everything should work as if they
-where normally installed, because throwaway docker containers will be created to
-run this commands for us.
+developing in Elixir, thus we can invoke `elixir`, `mix`, `iex` and other tools
+without having them installed in our computer, and everything should work as if
+they where normally installed, because throwaway docker containers will be
+created to run this commands for us.
 
 
 # MENU
@@ -27,9 +27,9 @@ run this commands for us.
         - [IEx](#iex)
         - [Observer GUI](#observer-gui)
         - [Observer Htop](#observer-htop)
-    + [Contribute](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTING.md)
-        - [Report an Issue](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTING.md#with-a-new-issue)
-        - [Open a Merge Request](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTING.md#merge-request-guidelines)
+    + [Contribute](./CONTRIBUTING.md)
+        - [Report an Issue](./CONTRIBUTING.md#with-a-new-issue)
+        - [Open a Merge Request](./CONTRIBUTING.md#merge-request-guidelines)
     + [Uninstall](#uninstall)
 * **Road Map**
     + [Milestones](https://gitlab.com/exadra37-docker/elixir/elixir/milestones)
@@ -38,6 +38,7 @@ run this commands for us.
     + [Author](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/AUTHOR.md)
     + [Contributors](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTORS.md)
     + [License](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/LICENSE)
+
 
 # QUICK START
 
