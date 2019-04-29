@@ -1,12 +1,23 @@
-# ELIXIR DOCKER IMAGE
+# ELIXIR DOCKER STACK
+
+The **Elixir Docker Stack** is a wrapper around the normal tools we use for
+developing in Elixir, thus we can invoke `elixir`, `mix` and `iex` without
+having them installed in our computer, and everything should work as if they
+where normally installed, because throwaway docker containers will be created to
+run this commands for us.
 
 
-## MENU
+# MENU
 
-* **The Package**
-    + [Why Exists?](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/the-package/why_exists.md)
-    + [What Is It?](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/the-package/what_is_it.md)
-    + [When To use It?](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/the-package/when_to_use_it.md)
+* **QUICK START**
+    + [Install](#throwaway-install)
+    + [Creating a New Phoenix App](#creating-a-new-phoenix-app)
+    + [Creating a New App With a Specific Version of Elixir and Phoenix](#creating-a-new-app-with-a-specific-version-of-elixir-and-phoenix)
+* **ELIXIR DOCKER STACK EXPLAINED**
+    + [Why Exists?](#why-exists)
+    + [What Is It?](#what-is-it)
+    + [When To use It?]()
+    + [Under the hood](#under-the-hood)
 * **How To**
     + [Install](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/how-to/install.md)
     + [Use](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/how-to/use.md)
@@ -25,9 +36,9 @@
     + [Contributing](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTING.md)
     + [License](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/LICENSE)
 
-## QUICK START
+# QUICK START
 
-### Install
+## INSTALL
 
 Clone the project somewhere in your computer:
 
@@ -61,8 +72,10 @@ Phoenix v1.4.3
 
 Seems that we have a working **Elixir Docker Stack** :).
 
+[Menu](#menu)
 
-### Creating a New Phoenix App
+
+## CREATING A NEW PHOENIX APP
 
 Following along the official [Up and Running](https://hexdocs.pm/phoenix/up_and_running.html) for the Phoenix framework.
 
@@ -83,6 +96,8 @@ Let's create the database for the `hello` app:
 ```bash
 mix ecto.create
 ```
+> **NOTE**: Did you notice something different from your normal work-flow?
+
 
 Time to start the Phoenix server:
 
@@ -92,43 +107,210 @@ mix phx.server
 
 The `hello` app is now running on http://localhost:4000.
 
+[Menu](#menu)
 
-## SUPPORT DEVELOPMENT
+
+## CREATING AN APP WITH A SPECIFIC VERSION OF ELIXIR AND PHOENIX
+
+Let's imagine that you want to quickly try an old app that is stuck on Elixir
+version `1.4` and Phoenix version `1.3.4`, all you need to do is to...
+
+Let's imagine that you bought a book and discovered that the code examples on it
+only work on Elixir `1.4` and Phoenix `1.3.4`, and instead of figuring out how
+to make the code work for the current versions, you can quickly create a throwaway
+docker stack for it:
+
+```bash
+mix --elixir-tag 1.4.5-slim --phoenix-version 1.3.4 phx.new myapp
+```
+
+The Elixir tag option is the docker tag we want to retrieve for the official
+Elixir docker image, where `1.4.5` is obviously the Elixir version and `-slim`
+is the flavour for the Docker image, that in this case means the smallest image
+for Debian builds.
+
+Lets check that we have the new app working with the version we required for
+Elixir:
+
+```bash
+$ cd myapp && elixir --version
+Erlang/OTP 19 [erts-8.3.5.7] [source] [64-bit] [smp:4:4] [ds:4:4:10] [async-threads:10] [hipe] [kernel-poll:false]
+
+Elixir 1.4.5
+```
+
+and for Phoenix the version is:
+
+```bash
+mix phx.new --version
+Phoenix v1.3.4
+```
+
+If you are curious about the docker image we have created, check it with:
+
+```bash
+$ sudo docker image ls | head -2
+REPOSITORY                       TAG                       IMAGE ID            CREATED             SIZE
+exadra37/elixir-phoenix          1.4.5-slim-1.3.4-debian   6fba76ed6d7c        5 minutes ago       969MB
+```
+
+Finally lets confirm that we have the defaults pinned:
+
+```bash
+$ cat .elixir-docker-stack-defaults
+elixir_tag=1.4.5-slim
+phoenix_version=1.3.4
+phoenix_command=phx.server
+dockerfile=debian
+database_image=postgres:11-alpine
+database_user=postgres
+database_data_dir=/home/exadra37/.elixir-docker-stack/Developer_Acme_Elixir_Phoenix_myapp/postgres/data
+database_command=postgres
+```
+
+Now you can follow the same procedures of the `hello` app to have `myapp` up and
+running on http://localhost:4000.
+
+[Menu](#menu)
+
+
+# ELIXIR DOCKER STACK EXPLAINED
+
+## Why Exists?
+
+
+[Menu](#menu)
+
+## What is It?
+
+
+[Menu](#menu)
+
+## Under the Hood
+
+When we run `mix phx.new hello` the **Elixir Docker Stack** will handle for
+us some tasks, like creating the docker network, starting the database server,
+pinning the defaults and updating the app configuration.
+
+[Menu](#menu)
+
+
+### Creation of a dedicated docker network
+
+The `hello` app will have a dedicated docker network, named `hello_network`, to
+be used when communicating between the containers on the stack.
+
+```bash
+$ sudo docker network ls | grep hello_network -
+c78f64609b20        hello_network       bridge              local
+```
+
+[Menu](#menu)
+
+### Creation and setup of a dedicated docker container for the app database
+
+I have asked previously if you noticed something different in your work-flow for
+when you need to run `ecto.create` after creating a new app, and if you have not
+figured it out yet, is that with the **Elixir Docker Stack** you don't have
+to manually start or ensure that you have a database up and running, because
+this is done automatically for you.
+
+The `hello` app will have a dedicated container for the database, named
+`hello_postgres`, that is created from the official docker image for Postgres.
+
+By default the database for this container will be persisted in host in the
+directory `${host_setup_dir}_${new_app_name}/${database_engine}/data`, that may
+translate to something like `~/.elixir-docker-stack/Developer_Acme_Elixir_Phoenix_hello/postgres/data`.
+
+Once we run the database in a dedicated container we need to ensure that the
+`hello` app is able to communicate with it, and for that we need to adjust the
+`hostname:` in `config/dev.exs` to point to `hello_postgres`, instead of the
+default of `localhost`. In order to save us from having to do it manually, the
+**Elixir Docker Stack** updates the `hello` app config for us:
+
+```bash
+$ cat config/dev.exs | tail -8
+
+# Configure your database
+config :hello, Hello.Repo,
+  username: "postgres",
+  password: "postgres",
+  database: "hello_dev",
+  hostname: "hello_postgres",
+  pool_size: 10
+```
+
+Now we have the `hostname:` entry updated from `localhost` to `hello_postgres`.
+
+Docker containers sharing the same network can communicate between them by using
+the container name as a DNS resolver inside the network. So in this case we use
+for the `hostname:` the value of `hello_postgres`, that is the name used for the
+database container.
+
+
+[Menu](#menu)
+
+
+### Pinning the defaults
+
+Each time we run the **Elixir Docker Stack** for the `hello` app we want to
+ensure that we do it exactly with the same defaults, so that we have parity in
+the development work-flow across computers and developers.
+
+To achieve this we will use a the file named `.elixir-docker-stack-defaults`
+in the root of the app project, that **MUST** be tracked in git.
+
+To save us from having to create this file manually, the **Elixir Docker Stack**
+have created it for us when we created the `hello` app with `mix phx.new hello`.
+
+Let's take a look to what is inside the file:
+
+```bash
+$ cat .elixir-docker-stack-defaults
+elixir_tag=1.8-slim
+phoenix_version=1.4.3
+phoenix_command=phx.server
+dockerfile=debian
+database_image=postgres:11-alpine
+database_user=postgres
+database_data_dir=/home/exadra37/.elixir-docker-stack/Developer_Acme_Elixir_Phoenix_hello/postgres/data
+database_command=postgres
+```
+
+As we can see we have pinned some defaults, and the most important ones are
+`elixir_tag`, that pins the docker image to be used by this app, and
+`phoenix_version` that pins the Phoenix version.
+
+So this file guarantees that the **Elixir Docker Stack** always use the same
+defaults for the `hello` App, unless we decide to override them on a command
+invocation.
+
+
+[Menu](#menu)
+
+# SUPPORT DEVELOPMENT
 
 If this is useful for you, please:
 
 * Share it on [Twitter](https://twitter.com/home?status=Base%20%23DockerImage%20for%20%23Elixir%20%23developers%20https%3A//gitlab.com/exadra37-docker/elixir/elixir%20by%20%40Exadra37.%20%23docker%20%23dockercontainers%20%23myelixirstatus) or in any other channel of your preference.
 * Consider to [offer me](https://www.paypal.me/exadra37) a coffee, a beer, a dinner or any other treat 😎.
 
+[Menu](#menu)
 
-## EXPLICIT VERSIONING
+
+# EXPLICIT VERSIONING
 
 This repository uses [Explicit Versioning](https://gitlab.com/exadra37-versioning/explicit-versioning) schema.
 
-
-## BRANCHES
-
-Branches are created as demonstrated [here](docs/how-to/create_branches.md).
-
-This are the type of branches we can see at any moment in the repository:
-
-* `master` - issues and milestones branches will be merged here. Don't use it in
-              production.
-* `last-stable-release` - matches the last stable tag created. Useful for
-                           automation tools. Doesn't guarantee backwards
-                           compatibility.
-* `4-fix-some-bug` - each issue will have is own branch for development.
-* `milestone-12_add-some-new-feature` - all Milestone issues will start, tracked and merged
-                             here.
-
-Only `master` and `last-stable-release` branches will be permanent ones in the
-repository and all other ones will be removed once they are merged.
+[Menu](#menu)
 
 
-## DISCLAIMER
+# DISCLAIMER
 
 I code for passion and when coding I like to do as it pleases me...
 
 You know I do this in my free time, thus I want to have fun and enjoy it ;).
 
 Professionally I will do it as per company guidelines and standards.
+
+[Menu](#menu)
