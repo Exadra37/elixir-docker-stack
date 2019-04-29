@@ -30,6 +30,9 @@ Main()
     # installs rebar and rebar3
     mix local.rebar --force
 
+    ln -s "${HOME}"/.mix/rebar "${HOME}"/bin/rebar
+    ln -s "${HOME}"/.mix/rebar3 "${HOME}"/bin/rebar3
+
     mix archive.install --force ${phoenix_install_from}
 }
 

@@ -16,24 +16,27 @@ run this commands for us.
 * **ELIXIR DOCKER STACK EXPLAINED**
     + [Why Exists?](#why-exists)
     + [What Is It?](#what-is-it)
-    + [When To use It?]()
-    + [Under the hood](#under-the-hood)
+    + [What is Included?](#what-is-included)
+    + [What it does for us under the hood?](#what-it-does-for-us-under-the-hood)
 * **How To**
-    + [Install](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/how-to/install.md)
-    + [Use](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/how-to/use.md)
-    + [Report an Issue](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/how-to/create_an_issue.md)
-    + [Create a Branch](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/how-to/create_branches.md)
-    + [Open a Merge Request](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/how-to/create_a_merge_request.md)
-    + [Uninstall](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/how-to/uninstall.md)
-* **Demos**
-    + [Elixir - Hello World](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/demos/elixir-hello-world.md)
+    + [Install](#install)
+    + [Use](#how-to-use)
+        - [Elixir Docker Stack](#elixir-docker-stack)
+        - [Elixir CLI](#elixir-cli)
+        - [Mix](#mix)
+        - [IEx](#iex)
+        - [Observer GUI](#observer-gui)
+        - [Observer Htop](#observer-htop)
+    + [Contribute](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTING.md)
+        - [Report an Issue](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTING.md#with-a-new-issue)
+        - [Open a Merge Request](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTING.md#merge-request-guidelines)
+    + [Uninstall](#uninstall)
 * **Road Map**
     + [Milestones](https://gitlab.com/exadra37-docker/elixir/elixir/milestones)
     + [Overview](https://gitlab.com/exadra37-docker/elixir/elixir/boards)
 * **About**
     + [Author](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/AUTHOR.md)
     + [Contributors](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTORS.md)
-    + [Contributing](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTING.md)
     + [License](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/LICENSE)
 
 # QUICK START
@@ -110,7 +113,7 @@ The `hello` app is now running on http://localhost:4000.
 [Menu](#menu)
 
 
-## CREATING AN APP WITH A SPECIFIC VERSION OF ELIXIR AND PHOENIX
+## CREATING A NEW APP WITH A SPECIFIC VERSION OF ELIXIR AND PHOENIX
 
 Let's imagine that you want to quickly try an old app that is stuck on Elixir
 version `1.4` and Phoenix version `1.3.4`, all you need to do is to...
@@ -182,25 +185,64 @@ Initially was supposed to be only a simple docker image for Elixir with my
 favourite shell and with a unprivileged user inside the docker container, but
 end-up to grow up to be a full development stack for Elixir.
 
-I am a huge fan of using Docker work-flow in development, and some of the
+I am a huge fan of using docker work-flow in development, and some of the
 reasons for it are:
 
-* more secure, once docker acts like a sandbox.
-* same development environment across computers and developers working on the
+* Same development environment across computers and developers working on the
   same project.
-* a cleaner operating system, once all my development tooling is running in
-  docker containers, thus I can upgrade my OS at any-time with less fuss.
 * I can run as many versions as I want of the tools I use, and throw away them
-  when I am done, without impacting my operating system.
+  when I am done, without impacting my operating system, and yes I know I can
+  use version managers to achieve the same.
+* A cleaner operating system, once all my development tooling is running in
+  docker containers, thus I can upgrade my OS at any-time with less fuss.
+* I can obtain a shell inside a docker container, install as many stuff I want
+  to try, without risking to mess-up, break the operating system, or leave
+  left-overs after I uninstall them(remember docker containers are destroy on
+  exit).
+* More secure, once docker acts like a "sandbox", and yes I know that docker
+  have suffered from "sandbox" escape in the past.
 
 [Menu](#menu)
 
 ## What is It?
 
+The **Elixir Docker Stack** is a set of tools needed for a normal development
+work-flow with Elixir.
+
+The goal is to be able to use this tools as if they are installed normally in
+the operating system, or if the developer prefers to use them from a shell
+inside the docker container.
+
+All docker containers created are ephemeral, thus they are destroyed when the
+command we executed inside them returns. To keep state we map folders from the
+host computer to inside the docker container.
+
 
 [Menu](#menu)
 
-## Under the Hood
+
+## What is Included?
+
+The software included:
+
+* Elixir
+* Phoenix
+* Erlang
+* Postgres
+
+The most useful tools included in the bin path:
+
+* elixir
+* mix
+* erl
+* rebar
+* rebar3
+* observer
+* pgcli
+
+[Menu](#menu)
+
+## What it does for us under the hood?
 
 When we run `mix phx.new hello` the **Elixir Docker Stack** will handle for
 us some tasks, like creating the docker network, starting the database server,
