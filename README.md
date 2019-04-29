@@ -18,7 +18,7 @@ created to run this commands for us.
     + [What Is It?](#what-is-it)
     + [What is Included?](#what-is-included)
     + [What it does for us under the hood?](#what-it-does-for-us-under-the-hood)
-* **How To**
+* **HOW TO**
     + [Install](#install)
     + [Use](#how-to-use)
         - [Elixir Docker Stack](#elixir-docker-stack)
@@ -31,10 +31,10 @@ created to run this commands for us.
         - [Report an Issue](./CONTRIBUTING.md#with-a-new-issue)
         - [Open a Merge Request](./CONTRIBUTING.md#merge-request-guidelines)
     + [Uninstall](#uninstall)
-* **Road Map**
+* **ROAD MAP**
     + [Milestones](https://gitlab.com/exadra37-docker/elixir/elixir/milestones)
     + [Overview](https://gitlab.com/exadra37-docker/elixir/elixir/boards)
-* **About**
+* **ABOUT**
     + [Author](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/AUTHOR.md)
     + [Contributors](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTORS.md)
     + [License](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/LICENSE)
