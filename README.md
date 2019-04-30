@@ -178,8 +178,179 @@ running on http://localhost:4000.
 [Menu](#menu)
 
 
+## Getting Help
+
+To get help for the **Elixir Docker Stack** you must ask explicitly with an
+argument passed to the help flag `-h stack`:
+
+```bash
+$ elixir -h stack
+
+ELIXIR DOCKER STACK
+
+A docker developemnt stack that includes Elixir, Phoenix, Erlang, Oberver and Postgres.
+
+
+ELIXIR CLI USAGE:
+
+  elixir [options] [.exs file] [data]
+
+
+ELIXIR DOCKER STACK USAGE:
+
+  elixir [options] [command] [args]
+
+
+ELIXIR DOCKER STACK OPTIONS:
+
+  -d, --detached            Run the docker container detached from the terminal.
+
+  --db, --database          Starts the container with the Postgres database up.
+
+  --df, --dockerfile        The dockerfile to run a container.
+                            Defaults to: debian .
+                              $
+                              $ elixir --dockerfile alpine up
+
+  --et, --elixir-tag        The Elixir version to be used for the docker tag,
+                            Defaults to the latest Elixir version: slim
+                              $ elixir --elixir-tag 1.3.4:slim
+
+  -h, --help                Shows the help for the Elixir CLI and Stack.
+                              $ elixir -h
+                              $ elixir --help
+                              $ elixir --help stack
+
+  -it, --interactive-tty    Run the docker container attached to the terminal.
+                              $ elixir -it up
+
+  --mix-env                 Sets the MIX_ENV var in the container.
+                            Defaults to dev.
+                              $ mix --mix-env test ecto.create
+
+  -p, --publish             Map the host ports to the docker container ports.
+                            Defaults to: 4000:4000 .
+                              $ elixir --publish 8000:4000
+
+  --pv, --phoenix-version   The Phoenix version to be installed.
+                            Defaults to the last release, eg: 1.4.3 .
+                              $ elixir --phoenix-version 1.3.4 up
+
+  -u, --user                The user we want to run inside the container,
+                            Defaults to current user, eg: 1000 .
+                              $ elixir --user 0 shell
+
+  --verbose <level>         Enables verbose output for the docker stack.
+                            Defaults to level 0, and can go until level 4.
+                              $ elixir --verbose 1 up
+                              $ elixir --verbose 2 shell
+                              $ elixir --verbose 3 observer
+                              $ elixir --verbose 4 build
+
+  --wa, --wait-dummy-app    Seconds to wait for the app dummy container to be ready.
+                            Defaults to 1 second.
+                              $ elixir --wait-dummy-app 3 up
+
+  --wd, --wait-database     Seconds to wait for the database is up and running.
+                            Defaults to 5 seconds.
+                              $ elixir --wait-database 10 new-database myapp_test
+
+
+ELIXIR DOCKER STACK COMMANDS:
+
+  <no-command>    Runs Elixir inside the container as it would in the host.
+                    $ elixir --help
+
+  build           Builds the docker image for the given dodkerfile.
+                  Defaults to build from: debian .
+                    $ elixir build
+                    $ elixir build alpine
+
+  container-logs  Shows a tail -f of the container logs.
+                    $ elixir container-logs
+
+  down            Stops and removes the running container.
+                    $ elixir down
+
+  iex             The Elixir IEx shell.
+                    $ iex [options] <args>
+
+  mix             The Elixir mix tool.
+                    $ mix <command> [options] <args>
+                    $ mix help
+                    $ mix new elixir-project
+                    $ mix phx.new phoenix-app
+
+  new-database    Creates a new database.
+                  Defaults to the current folder name with suffix "_dev".
+                    $ elixir new-database
+                    $ elixir new-database acme
+
+  pgcli           A better shell for Postgres, includes auto-completion.
+                    $ elixir pgcli [options] <args>
+
+  observer        Starts the Observer GUI from an IEx shell.
+                    $ elixir observer
+
+  observer-cli    Allows to start from IEx the Observer CLI(like Linux HTOP).
+                    $ elixir observer-cli
+
+  up              Starts the Elixir docker stack.
+                    $ elixir up
+                    $ elixir --db up
+                    $ elixir --dockerfile alpine up
+                    $ elixir -it --publish 8000:4000 up
+                    $ elixir --elixir-tag 1.3 --phoenix-version 1.3.4 --db up
+
+  shell           A shell inside the container for the Elixir docker stack.
+                    $ elixir shell
+                    $ elixir -u 0 shell
+```
+
+So if we try to get help without using the argument `stack` for the help flag,
+we get the usual output:
+
+```bash
+$ elixir -h
+Usage: elixir [options] [.exs file] [data]
+
+  -e COMMAND                  Evaluates the given command (*)
+  -r FILE                     Requires the given files/patterns (*)
+  -S SCRIPT                   Finds and executes the given script in PATH
+  -pr FILE                    Requires the given files/patterns in parallel (*)
+  -pa PATH                    Prepends the given path to Erlang code path (*)
+  -pz PATH                    Appends the given path to Erlang code path (*)
+
+  --app APP                   Starts the given app and its dependencies (*)
+  --cookie COOKIE             Sets a cookie for this distributed node
+  --detached                  Starts the Erlang VM detached from console
+  --erl SWITCHES              Switches to be passed down to Erlang (*)
+  --help, -h                  Prints this message and exits
+  --hidden                    Makes a hidden node
+  --logger-otp-reports BOOL   Enables or disables OTP reporting
+  --logger-sasl-reports BOOL  Enables or disables SASL reporting
+  --name NAME                 Makes and assigns a name to the distributed node
+  --no-halt                   Does not halt the Erlang VM after execution
+  --sname NAME                Makes and assigns a short name to the distributed node
+  --version, -v               Prints Elixir version and exits
+  --werl                      Uses Erlang's Windows shell GUI (Windows only)
+
+** Options marked with (*) can be given more than once
+** Options given after the .exs file or -- are passed down to the executed code
+** Options can be passed to the Erlang runtime using ELIXIR_ERL_OPTIONS or --erl
+```
+
+The help for all the other tools included in the **Elixir Docker Stack** do not
+have any special treatment and beahave exactly as you are used to.
+
+[Menu](#menu)
+
+
 # ELIXIR DOCKER STACK EXPLAINED
 
+This section will try to answer some questions you may have regarding the
+**Elixir Docker Stack**, and to explain how some details are handled for us, to
+free up the developer from manually set them.
 
 ## Why Exists?
 
@@ -219,7 +390,6 @@ inside the docker container.
 All docker containers created are ephemeral, thus they are destroyed when the
 command we executed inside them returns. To keep state we map folders from the
 host computer to inside the docker container.
-
 
 [Menu](#menu)
 
@@ -306,7 +476,6 @@ the container name as a DNS resolver inside the network. So in this case we use
 for the `hostname:` the value of `hello_postgres`, that is the name used for the
 database container.
 
-
 [Menu](#menu)
 
 ### Pinning the defaults
@@ -343,8 +512,81 @@ So this file guarantees that the **Elixir Docker Stack** always use the same
 defaults for the `hello` App, unless we decide to override them on a command
 invocation.
 
-
 [Menu](#menu)
+
+# HOW TO USE
+
+## Elixir
+
+The elixir CLI tool will be used as you are used to, but it responds to some
+additional options and commands, and you can all with examples by asking for
+help:
+
+```bash
+elixir --help stack
+```
+
+All this options and arguments are used to handle the docker stack and to make
+some tasks easier for us.
+
+## Mix
+
+The mix CLI tool works as usual but accepts some options that are specific to
+the **Elixir Docker Stack**.
+
+### The `--mix-env` option
+
+From the name should be pretty options what is for...
+
+Use it like:
+
+```bash
+mix --mix-env test ecto.create
+```
+
+### The `--pv, --phoenix-version` option
+
+When creating a new app with Mix, the latest Phoenix will be used, but we can
+use this option to create the app with an older version of Phoenix.
+
+Use like this:
+
+```bash
+mix --phoenix-version 1.3.4 php.new my_app_name
+```
+
+### The `--et, --elixir-tag` option
+
+For the same reasons that we may want to use `--phoenix-version` we may also
+want to specify the Elixir version to use, and for that we need to use the
+`--elixir-tag` option, that stands for the docker tag used to tag each release
+of the official docker image for Elixir. You can see all available tags in the
+Docker Hub [Elixir repository](https://hub.docker.com/_/elixir?tab=tags).
+
+By default the **Elixir Docker Stack** defaults to a specific major version of
+Elixir in the `slim` flavour, eg: `1.8-slim`, that is a Debian release stripped
+out of lots of programs we normally don't need. If we decide to use instead
+`1.8`, then the docker image will be a full Debian release, that makes the
+docker images substantially bigger, but sometimes you may need them.
+
+So if we need to create a new app that uses the latest version available for
+Elixir `1.7.*`, then we type:
+
+```bash
+mix --elixir-tag 1.7-slim phx.new my_app_name
+```
+
+or for a full Debian release:
+
+```bash
+mix --elixir-tag 1.7 phx.new my_app_name
+```
+
+But if you need to pin to the exact Elixir version, then:
+
+```bash
+mix --elixir-tag 1.7.1-slim phx.new my_app_name
+```
 
 # SUPPORT DEVELOPMENT
 
