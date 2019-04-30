@@ -79,6 +79,5 @@ All optional topics not used must maintain their title and have their body repla
 
 ---
 
-[<< previous](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/how-to/use.md) | [next >>](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/how-to/create_an_issue.md)
 
 [HOME](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/README.md)
