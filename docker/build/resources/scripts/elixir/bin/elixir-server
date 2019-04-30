@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -eu
+
+Main()
+{
+  ##############################################################################
+  # INPUT
+  ##############################################################################
+
+    local app_name="${1? Missing app name!!!}"
+    local node_cookie="${2? Missing node cookie!!!}"
+    local phoenix_command=${3:-phx.server}
+
+    local node_name="${app_name}@$(hostname -i)"
+
+  ##############################################################################
+  # EXECUTION
+  ##############################################################################
+
+    printf "\n---> NODE NAME: ${node_name}\n"
+    printf "\n---> NODE COOKIE: ${node_cookie}\n"
+
+    elixir \
+      --cookie "${node_cookie}" \
+      --name "${node_name}" \
+      -S mix "${phoenix_command}"
+
+}
+
+Main "${@}"

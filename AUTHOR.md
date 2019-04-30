@@ -27,6 +27,5 @@ https://exadra37.com
 
 ---
 
-[<< previous](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/docs/how-to/uninstall.md) | [next >>](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/CONTRIBUTORS.md)
 
 [HOME](https://gitlab.com/exadra37-docker/elixir/elixir/blob/master/README.md)
