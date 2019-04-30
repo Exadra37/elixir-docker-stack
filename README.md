@@ -645,7 +645,7 @@ select if from the `Nodes` menu.
 So if you already know HTOP for Linux, than you may have already an idea of
 what is expecting you ;).
 
-To use this command the app needs to have installed the `:observer_cli`
+To use this command the app needs to have installed the `{:observer_cli, "~> 1.4"}`
 dependency.
 
 To run, just type:
@@ -661,7 +661,7 @@ need to type in the IEx shell:
 iex> :observer_cli.start
 ```
 
-Enjoy your HTOP for Elixir :)
+Enjoy your [HTOP](https://github.com/zhongwencool/observer_cli) for Elixir :)
 
 [Menu](#menu)
 
