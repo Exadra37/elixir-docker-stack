@@ -1,0 +1,10 @@
+
+ELIXIR ON THE ELIXIR DOCKER STACK
+
+A docker development stack that includes Elixir, Phoenix, Erlang, Observer and Postgres.
+
+
+ELIXIR USAGE:
+
+  elixir [docker-stack-options] [elixir-options] [.exs file] [data]
+

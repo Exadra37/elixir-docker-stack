@@ -1,0 +1,50 @@
+
+ELIXIR DOCKER STACK (EDS) COMMANDS:
+
+  <no-command>    Runs Elixir inside the container as it would in the host.
+                    $ elixir --help
+
+  build           Builds the docker image for the given dodkerfile.
+                  Defaults to build from: debian .
+                    $ eds build
+                    $ eds build alpine
+                    $ eds build debian.esl
+                    $ eds build debian.git.branch
+                    $ eds build debian.git.release
+
+  container-logs  Shows a tail -f of the container logs.
+                    $ eds container-logs
+
+  down            Stops and removes the running containers.
+                    $ eds down
+
+  new-database    Creates a new database.
+                  Defaults to the current folder name with suffix "_dev".
+                    $ eds new-database
+                    $ eds new-database acme
+
+  pgcli           A better shell for Postgres, includes auto-completion.
+                    $ eds pgcli [options] [args]
+
+  observer        Starts the Observer GUI from an IEx shell.
+                    $ eds observer
+
+  observer htop   Allows to start from IEx the Observer CLI(like Linux HTOP).
+                    $ eds observer htop
+
+  observer shell  Starts a shell inside the Observer container.
+                  Default shell: zsh
+                    $ eds observer shell
+                    $ eds --user root observer shell
+
+  up              Starts the Elixir Docker Stack.
+                    $ eds up
+                    $ eds --db up
+                    $ eds --dockerfile alpine up
+                    $ eds -it --publish 8000:4000 up
+                    $ eds --elixir-version 1.3 --phoenix-version 1.3.4 --db up
+
+  shell           A shell inside the container for the Elixir Docker Stack.
+                    $ eds shell
+                    $ eds --user root shell
+

@@ -1,0 +1,10 @@
+
+ELIXIR DOCKER STACK (EDS)
+
+A docker developemnt stack that includes Elixir, Phoenix, Erlang, Observer and Postgres.
+
+
+ELIXIR DOCKER STACK USAGE:
+
+  eds [options] [command] [args]
+

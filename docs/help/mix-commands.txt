@@ -1,0 +1,7 @@
+
+MIX DOCKER STACK COMMANDS
+
+The Elixir Docker Stack does not provide any specific commands to use in
+conjunction with the official `mix` CLI tool, but adds some functionality to
+some of the `mix` commands. See README for more details.
+

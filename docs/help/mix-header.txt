@@ -1,0 +1,10 @@
+
+MIX ON THE ELIXIR DOCKER STACK
+
+A docker development stack that includes Elixir, Phoenix, Erlang, Observer and Postgres.
+
+
+MIX USAGE:
+
+  mix [docker-stack-options] [mix-command] [mix-arguments] [mix-options]
+

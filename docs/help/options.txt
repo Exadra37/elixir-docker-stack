@@ -1,0 +1,67 @@
+
+DOCKER STACK OPTIONS:
+
+  -d, --detached            Run the docker container detached from the terminal.
+
+  --db, --database          Starts the container with the Postgres database up.
+
+
+  --di, --database-image    The dockerfile to run the database container.
+                            Defaults to: postgres:11-alpine
+                              $ __cli__ --database-image postgres:10 --db up
+
+  --df, --dockerfile        The dockerfile to run a container.
+                            Defaults to: debian
+                              $ __cli__ --dockerfile alpine up
+                              $ __cli__ --dockerfile debian.esl up
+                              $ __cli__ --dockerfile debian.slim up
+                              $ __cli__ --dockerfile debian.git.branch up
+                              $ __cli__ --dockerfile debian.git.release up
+
+  -e, --env                 Add an environment variable to the running command.
+                            Instead of PORT=4040 mix phx.server, do:
+                              $ mix --env PORT=4040 phx.server
+
+  --ev, --elixir-version    The Elixir version to be used for the docker tag,
+                            Defaults to the latest Elixir version: 1.8
+                              $ __cli__ --elixir-version 1.3.4 up
+
+  -h, --help                Shows the help for the Elixir CLI and Stack.
+                              $ __cli__ -h
+                              $ __cli__ --help
+                              $ __cli__ --help stack
+
+  -it, --interactive-tty    Run the docker container attached to the terminal.
+                              $ __cli__ -it up
+
+  --mix-env                 Sets the MIX_ENV var in the container.
+                            Defaults to dev.
+                              $ mix --mix-env test ecto.create
+
+  -p, --publish             Map the host ports to the docker container ports.
+                            Defaults to: 4000:4000 .
+                              $ __cli__ --publish 8000:4000 up
+
+  --pv, --phoenix-version   The Phoenix version to be installed.
+                            Defaults to the last release, eg: 1.4.3 .
+                              $ __cli__ --phoenix-version 1.3.4 up
+
+  -u, --user                The user we want to run inside the container,
+                            Defaults to user, eg: elixir .
+                              $ __cli__ --user root shell
+
+  --verbose <level>         Enables verbose output for the docker stack.
+                            Defaults to level 0, and can go until level 4.
+                              $ __cli__ --verbose 1 up
+                              $ __cli__ --verbose 2 shell
+                              $ __cli__ --verbose 3 observer
+                              $ __cli__ --verbose 4 build
+
+  --wda, --wait-dummy-app   Seconds to wait for the app dummy container to be ready.
+                            Defaults to 1 second.
+                              $ __cli__ --wait-dummy-app 3 up
+
+  --wd, --wait-database     Seconds to wait for the database is up and running.
+                            Defaults to 5 seconds.
+                              $ __cli__ --wait-database 10 new-database myapp_test
+
