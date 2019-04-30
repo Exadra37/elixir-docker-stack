@@ -60,8 +60,8 @@ ELIXIR DOCKER STACK OPTIONS:
                               $ elixir --phoenix-version 1.3.4 up
 
   -u, --user                The user we want to run inside the container,
-                            Defaults to current user, eg: 1000 .
-                              $ elixir --user 0 shell
+                            Defaults to user, eg: elixir .
+                              $ elixir --user root shell
 
   --verbose <level>         Enables verbose output for the docker stack.
                             Defaults to level 0, and can go until level 4.
@@ -70,7 +70,7 @@ ELIXIR DOCKER STACK OPTIONS:
                               $ elixir --verbose 3 observer
                               $ elixir --verbose 4 build
 
-  --wa, --wait-dummy-app          Seconds to wait for the app dummy container to be ready.
+  --wa, --wait-dummy-app    Seconds to wait for the app dummy container to be ready.
                             Defaults to 1 second.
                               $ elixir --wait-dummy-app 3 up
 
@@ -127,7 +127,7 @@ ELIXIR DOCKER STACK COMMANDS:
 
   shell           A shell inside the container for the Elixir docker stack.
                     $ elixir shell
-                    $ elixir -u 0 shell
+                    $ elixir -u root shell
 
 HEREDOC
 
@@ -332,7 +332,7 @@ HEREDOC
       echo -n $( sudo docker exec -it ${container_name} sh -c 'echo -n $(hostname -i)' )
   }
 
-  Get_Container_User_UID()
+  Get_Container_Username_UID()
   {
     ############################################################################
     # INPUT
@@ -494,7 +494,7 @@ HEREDOC
 
       local app_container_name="${1? Missing app container name!!!}"
 
-      local container_user="${2? Missing container user!!!}"
+      local container_username="${2? Missing container userNAME!!!}"
 
       local background_mode="${3? Missing backround mode to run the container!!!}"
 
@@ -516,7 +516,7 @@ HEREDOC
       APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${app_container_name} )"
 
       sudo docker exec \
-        --user ${container_user} \
+        --user ${container_username} \
         --env "APP_NODE_NAME=${APP_NODE_NAME}" \
         --env "APP_NODE_COOKIE=${ERLANG_COOKIE}" \
         ${background_mode} \
@@ -546,7 +546,7 @@ HEREDOC
 
       local app_container_name="${7? Missing app container name!!!}"
 
-      local container_user="${8? Missing container user!!!}"
+      local container_username="${8? Missing container userNAME!!!}"
 
       local port_map="${9? Missing port map!!!}"
 
@@ -607,7 +607,7 @@ HEREDOC
 
         Attach_To_App_Container \
           "${app_container_name}" \
-          "${container_user}" \
+          "${container_username}" \
           "${background_mode}" \
           "${run_command}" \
           ${@}
@@ -623,7 +623,7 @@ HEREDOC
 
       Print_Text_With_Label "TAG" "${tag}" "3"
 
-      Print_Text_With_Label "CONTAINER USER" "${container_user}" "3"
+      Print_Text_With_Label "CONTAINER USERNAME" "${container_username}" "3"
 
       Print_Text_With_Label "APP NETWORK" "${app_network}" "3"
 
@@ -642,13 +642,13 @@ HEREDOC
         --env "MIX_ENV=${mix_env}" \
         --env "XAUTHORITY=${xauth}" \
         --name "${app_container_name}" \
-        --user "${container_user}" \
+        --user "${container_username}" \
         --network "${app_network}" \
         --publish "127.0.0.1:${port_map}" \
-        --volume "${PWD}":/home/"${container_user}"/workspace \
+        --volume "${PWD}":/home/"${container_username}"/workspace \
         --volume "${app_container_name}_${tag}_var_lib_postgresql":/var/lib/postgresql \
         --volume "${app_container_name}_${tag}_var_log_postgresql":/var/log/postgresql \
-        --volume "${app_container_name}_${tag}_config_sublimetext_3":/home/"${container_user}"/.config/sublime-text-3 \
+        --volume "${app_container_name}_${tag}_config_sublimetext_3":/home/"${container_username}"/.config/sublime-text-3 \
         --volume "/tmp/.X11-unix":"/tmp/.X11-unix":ro \
         --volume "${xauth}":"${xauth}":ro \
         "${docker_image}" \
@@ -675,7 +675,7 @@ HEREDOC
 
       local app_container_name="${7? Missing app container name!!!}"
 
-      local container_user="${8? Missing container user!!!}"
+      local container_username="${8? Missing container userNAME!!!}"
 
       local port_map="${9? Missing port map!!!}"
 
@@ -711,7 +711,7 @@ HEREDOC
           "${app_name}" \
           "${app_network}" \
           "${app_container_name}" \
-          "${container_user}" \
+          "${container_username}" \
           "${port_map}" \
           "${mix_env}" \
           "${env_file}" \
@@ -798,7 +798,7 @@ HEREDOC
 
         Print_Text_With_Label "CHECK POINT" "Fixing database data dir permissions!!!" "4"
 
-        local user_uid=$( Get_Container_User_UID "${database_image}" "${database_user}" )
+        local user_uid=$( Get_Container_Username_UID "${database_image}" "${database_user}" )
 
         Print_Text_With_Label "USER UID (${database_user})" "${user_uid}" "3"
 
@@ -846,7 +846,7 @@ HEREDOC
 
       local database_data_dir="${4? Missing database data dir!!!}"
 
-      local database_user="${5? Missing container user!!!}"
+      local database_user="${5? Missing database container userNAME!!!}"
 
       local database_container_name="${6? Missing database container name!!!}"
 
@@ -917,7 +917,9 @@ HEREDOC
 
       local erlang_cookie="${5? Missing the Erlang cookie!!!}"
 
-      shift 5
+      local observer_container_username="${6? Missing Observer container userNAME!!!}"
+
+      shift 6
 
       Print_Text_With_Label "HOST SETUP DIR" "${host_setup_dir}" "3"
 
@@ -988,6 +990,7 @@ HEREDOC
       sudo docker run \
         --rm \
         -it \
+        --user "${observer_container_username}" \
         --hostname "${observer_container_name}" \
         --name "${observer_container_name}" \
         --network "${app_network}" \
@@ -1106,7 +1109,7 @@ HEREDOC
       # from `developer/acme/my-app` we get `~/.elixir-docker-stack-data/developer_acme_my-app`
       local host_setup_dir="${ELIXIR_DOCKER_STACK_DATA_DIR}/${CURRENT_PATH//\//_}"
 
-      local container_user=elixir
+      local container_username=elixir
 
       local app_container_name="${APP_NAME}_app"
 
@@ -1226,7 +1229,7 @@ HEREDOC
           -u | --user )
             Print_Text_With_Label "OPTION" "-u, --user" "4"
 
-            container_user=${2? Missing user for container!!!}
+            container_username=${2? Missing user for container!!!}
             shift 2
           ;;
 
@@ -1328,6 +1331,7 @@ HEREDOC
               "${app_network}" \
               "${app_container_name}" \
               "${ERLANG_COOKIE}" \
+              "${container_username}" \
               ${@}
 
             exit 0
@@ -1368,7 +1372,7 @@ HEREDOC
               "${APP_NAME}" \
               "${app_network}" \
               "${app_container_name}" \
-              "${container_user}" \
+              "${container_username}" \
               "${port_map}" \
               "${mix_env}" \
               "${env_file}" \
@@ -1438,7 +1442,7 @@ HEREDOC
               "${APP_NAME}" \
               "${app_network}" \
               "${app_container_name}" \
-              "${container_user}" \
+              "${container_username}" \
               "${port_map}" \
               "${mix_env}" \
               "${env_file}" \
@@ -1491,7 +1495,7 @@ HEREDOC
         "${APP_NAME}" \
         "${app_network}" \
         "${app_container_name}" \
-        "${container_user}" \
+        "${container_username}" \
         "${port_map}" \
         "${mix_env}" \
         "${env_file}" \

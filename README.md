@@ -25,8 +25,10 @@ created to run this commands for us.
         - [Elixir CLI](#elixir-cli)
         - [Mix](#mix)
         - [IEx](#iex)
-        - [Observer GUI](#observer-gui)
-        - [Observer Htop](#observer-htop)
+        - [Observer](#observer)
+            . [Graphical User Interface](#graphical-user-interface)
+            . [Htop](#htop)
+            . [Shell](#shell)
     + [Contribute](./CONTRIBUTING.md)
         - [Report an Issue](./CONTRIBUTING.md#with-a-new-issue)
         - [Open a Merge Request](./CONTRIBUTING.md#merge-request-guidelines)
@@ -184,7 +186,7 @@ To get help for the **Elixir Docker Stack** you must ask explicitly with an
 argument passed to the help flag `-h stack`:
 
 ```bash
-$ elixir -h stack
+$ elixir --help stack
 
 ELIXIR DOCKER STACK
 
@@ -237,8 +239,8 @@ ELIXIR DOCKER STACK OPTIONS:
                               $ elixir --phoenix-version 1.3.4 up
 
   -u, --user                The user we want to run inside the container,
-                            Defaults to current user, eg: 1000 .
-                              $ elixir --user 0 shell
+                            Defaults to user, eg: elixir .
+                              $ elixir --user root shell
 
   --verbose <level>         Enables verbose output for the docker stack.
                             Defaults to level 0, and can go until level 4.
@@ -304,7 +306,7 @@ ELIXIR DOCKER STACK COMMANDS:
 
   shell           A shell inside the container for the Elixir docker stack.
                     $ elixir shell
-                    $ elixir -u 0 shell
+                    $ elixir -u root shell
 ```
 
 So if we try to get help without using the argument `stack` for the help flag,
@@ -586,6 +588,84 @@ But if you need to pin to the exact Elixir version, then:
 
 ```bash
 mix --elixir-tag 1.7.1-slim phx.new my_app_name
+```
+
+## IEx
+
+Just use as usual:
+
+```bash
+iex
+```
+
+or
+
+```bash
+iex -S mix
+```
+
+or any other command you are used to run...
+
+
+## Observer
+
+Observer runs in a different docker image from our app, thus in order to use the
+**Elixir Docker Stack** command to start the Observer you need to have already
+the app up and running, otherwise a fatal error will be raised.
+
+### Graphical User Interface
+
+To run it, just type:
+
+```bash
+elixir observer
+```
+
+This command will fire up an `IEx` session and start the Observer for us, and
+once it also connects us to the node where our App is running we just need to
+select if from the `Nodes` menu.
+
+### HTOP
+
+So if you already know HTOP for Linux, than you may have already an idea of
+what is expecting you ;).
+
+To use this command the app needs to have installed the `:observer_cli`
+dependency.
+
+To run, just type:
+
+```bash
+elixir observer htop
+```
+
+This command will fire up a session in the `IEx` shell for the app, and we just
+need to type in the IEx shell:
+
+```bash
+iex> :observer_cli.start
+```
+
+Enjoy your HTOP for Elixir :)
+
+
+### Shell
+
+As already mentioned the Observer run in a different container from our app,
+thus if for some reason you need to access the bash shell for some debugging or
+to fire up an IEx shell, you just need to run a bash shell in the Observer
+container.
+
+Just type:
+
+```bash
+elixir observer shell
+```
+
+or for root access:
+
+```bash
+elixir --user root observer shell
 ```
 
 # SUPPORT DEVELOPMENT
