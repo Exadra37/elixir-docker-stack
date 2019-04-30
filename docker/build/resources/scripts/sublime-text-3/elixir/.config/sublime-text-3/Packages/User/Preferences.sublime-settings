@@ -1,0 +1,18 @@
+{
+  "bold_folder_labels": true,
+  "ensure_newline_at_eof_on_save": true,
+  "highlight_modified_tabs": true,
+  "ignored_packages":
+  [
+    "Vintage"
+  ],
+  "rulers":
+  [
+    80
+  ],
+  "show_encoding": true,
+  "spell_check": true,
+  "translate_tabs_to_spaces": true,
+  "theme": "Adaptive.sublime-theme",
+  "trim_trailing_white_space_on_save": true
+}

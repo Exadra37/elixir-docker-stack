@@ -1,0 +1,63 @@
+#!/bin/sh
+
+set -eu
+
+Main()
+{
+  ##############################################################################
+  # INPUT
+  ##############################################################################
+
+    if [ "$#" -ge 1 ]; then
+
+      # eg: acme-app
+      local node_name="${1? Missing node name!!!}"
+
+      # eg: 172.24.0.2
+      local node_address="${2? Missing node address!!!}"
+
+      # eg: -7sXSFr5CfAlj|".0>`ci84E$0c9LEQtZ-pP0d:[qY.)#U|5Fp[3{_7U%R`-
+      local node_cookie="${3? Missing node cookie!!!}"
+
+      # eg: acme-app@172.24.0.2
+      local app_node_name="${node_name}@${node_address}"
+
+    else
+
+      # GET FROM ENVIRONMENT WHEN NO ARGUMENTS ARE PASSED TO THE SCRIPT
+
+      # eg: acme-app@172.24.0.2
+      local app_node_name="${APP_NODE_NAME}"
+
+      # eg: -7sXSFr5CfAlj|".0>`ci84E$0c9LEQtZ-pP0d:[qY.)#U|5Fp[3{_7U%R`-
+      local node_cookie="${APP_NODE_COOKIE}"
+    fi
+
+    # observer@172.24.0.3
+    local observer_node_name="observer@$(hostname -i)"
+
+
+  ##############################################################################
+  # EXECUTION
+  ##############################################################################
+
+    # @link https://elixirforum.com/t/is-possible-to-use-observer-with-multiple-applications/21617
+    local app_node_name="$(echo ${app_node_name} | tr -d '\n\r\t ')"
+
+    cat <<-HEREDOC
+
+  ##############################################################
+  #                                                            #
+  #     iex(${app_node_name})> :observer_cli.start()     #
+  #                                                            #
+  ##############################################################
+
+HEREDOC
+
+    iex \
+      --name "${observer_node_name}" \
+      --cookie "${node_cookie}" \
+      --remsh "${app_node_name}"
+}
+
+Main "${@}"

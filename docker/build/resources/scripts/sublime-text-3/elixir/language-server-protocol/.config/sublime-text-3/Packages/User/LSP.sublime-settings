@@ -1,0 +1,32 @@
+{
+    "auto_show_diagnostics_panel_level": 4,
+    "clients":
+    {
+        "elixir-ls":
+        {
+            "command":
+            [
+                "elixir-ls"
+            ],
+            "enabled": true,
+            "languageId": "elixir",
+            "scopes":
+            [
+                "source.elixir"
+            ],
+            "syntaxes":
+            [
+                "Packages/ElixirSyntax/Elixir.sublime-syntax"
+            ]
+        }
+    },
+    "diagnostics_highlight_style": "box",
+    "log_debug": true,
+    "log_payloads": true,
+    "log_stderr": true,
+    "only_show_lsp_completions": true,
+    "resolve_completion_for_snippets": true,
+    "show_code_actions_bulb": true,
+    "show_diagnostics_phantoms": true,
+    "show_diagnostics_severity_level": 4
+}

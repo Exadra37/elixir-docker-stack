@@ -1,0 +1,26 @@
+#!/bin/sh
+
+set -eu
+
+# One Liner for testing in shell:
+#   → if sudo -h > /dev/null 2>&1 ; then echo 'Sudo is enabled.' ; else echo 'Sudo is not enabled' ; fi
+Sudo_Exists()
+{
+  if sudo -h > /dev/null 2>&1; then
+    return 0 # sudo exists
+  fi
+
+  return 1 # sudo doesn't exist
+}
+
+Sudo_Prefix()
+{
+    if Sudo_Exists; then
+      echo 'sudo'
+      return
+    fi
+
+    echo ""
+}
+
+echo $(Sudo_Prefix)
