@@ -21,8 +21,7 @@ created to run this commands for us.
 * **HOW TO**
     + [Install](#install)
     + [Use](#how-to-use)
-        - [Elixir Docker Stack](#elixir-docker-stack)
-        - [Elixir CLI](#elixir-cli)
+        - [Elixir](#elixir)
         - [Mix](#mix)
         - [IEx](#iex)
         - [Observer](#observer)
@@ -516,6 +515,7 @@ invocation.
 
 [Menu](#menu)
 
+
 # HOW TO USE
 
 ## Elixir
@@ -531,10 +531,14 @@ elixir --help stack
 All this options and arguments are used to handle the docker stack and to make
 some tasks easier for us.
 
+[Menu](#menu)
+
 ## Mix
 
 The mix CLI tool works as usual but accepts some options that are specific to
 the **Elixir Docker Stack**.
+
+[Menu](#menu)
 
 ### The `--mix-env` option
 
@@ -546,6 +550,8 @@ Use it like:
 mix --mix-env test ecto.create
 ```
 
+[Menu](#menu)
+
 ### The `--pv, --phoenix-version` option
 
 When creating a new app with Mix, the latest Phoenix will be used, but we can
@@ -556,6 +562,8 @@ Use like this:
 ```bash
 mix --phoenix-version 1.3.4 php.new my_app_name
 ```
+
+[Menu](#menu)
 
 ### The `--et, --elixir-tag` option
 
@@ -590,6 +598,8 @@ But if you need to pin to the exact Elixir version, then:
 mix --elixir-tag 1.7.1-slim phx.new my_app_name
 ```
 
+[Menu](#menu)
+
 ## IEx
 
 Just use as usual:
@@ -606,12 +616,15 @@ iex -S mix
 
 or any other command you are used to run...
 
+[Menu](#menu)
 
 ## Observer
 
 Observer runs in a different docker image from our app, thus in order to use the
 **Elixir Docker Stack** command to start the Observer you need to have already
 the app up and running, otherwise a fatal error will be raised.
+
+[Menu](#menu)
 
 ### Graphical User Interface
 
@@ -624,6 +637,8 @@ elixir observer
 This command will fire up an `IEx` session and start the Observer for us, and
 once it also connects us to the node where our App is running we just need to
 select if from the `Nodes` menu.
+
+[Menu](#menu)
 
 ### HTOP
 
@@ -648,6 +663,7 @@ iex> :observer_cli.start
 
 Enjoy your HTOP for Elixir :)
 
+[Menu](#menu)
 
 ### Shell
 
