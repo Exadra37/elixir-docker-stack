@@ -56,6 +56,18 @@ Now we need to set where you have installed the **Elixir Docker Stack**:
 ```bash
 export ELIXIR_DOCKER_STACK_INSTALL_DIR="${PWD}/elixir-docker-stack"
 ```
+> **NOTE: The `export` command assumes you are not inside the folder `elixir-docker-stack`**
+
+
+And we also need to export to our `PATH`, the `bin` folder for the **Elixir Docker Stack**
+
+```bash
+export PATH=${ELIXIR_DOCKER_STACK_INSTALL_DIR}/bin
+```
+> **NOTE: The `export` command assumes you are not inside the folder `elixir-docker-stack`**
+
+For a permanent installation the `export` commands need to be added to your shell,
+that in bash is `~/.bashrc`.
 
 Time to build the docker image for the **Elixir Docker Stack**:
 

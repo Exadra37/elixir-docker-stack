@@ -579,6 +579,12 @@ HEREDOC
 
       local xauth=$( Setup_X11_Server_Display "${host_setup_dir}" )
 
+      local publish_ports=""
+
+      if [ "${port_map}" != ":" ]; then
+        local publish_ports="--publish 127.0.0.1:${port_map}"
+      fi
+
 
     ############################################################################
     # EXECUTION
@@ -637,6 +643,7 @@ HEREDOC
         --rm \
         ${background_mode} \
         ${env_file_option} \
+        ${publish_ports} \
         --env "APP_NODE_NAME=${APP_NODE_NAME}" \
         --env "APP_NODE_COOKIE=${ERLANG_COOKIE}" \
         --env "MIX_ENV=${mix_env}" \
@@ -644,7 +651,6 @@ HEREDOC
         --name "${app_container_name}" \
         --user "${container_username}" \
         --network "${app_network}" \
-        --publish "127.0.0.1:${port_map}" \
         --volume "${PWD}":/home/"${container_username}"/workspace \
         --volume "${app_container_name}_${tag}_var_lib_postgresql":/var/lib/postgresql \
         --volume "${app_container_name}_${tag}_var_log_postgresql":/var/log/postgresql \
@@ -1062,7 +1068,7 @@ HEREDOC
 
       local background_mode="-it"
 
-      local port_map="4000:4000"
+      local app_port_map="4000:4000"
 
       local env_file=".env.app-docker-container"
 
@@ -1116,6 +1122,15 @@ HEREDOC
       local VERBOSE_LEVEL=0
 
       local app_network="${APP_NAME}_network"
+
+      # by default it will be assigned $app_port_map when running commands:
+      #   * up
+      #   * phx.server, phoenix.server
+      #   * phx.new, phoenix.new
+      # we can override with -p or --publish
+      #
+      # ":" means no port map
+      local port_map=":"
 
       local database_engine=postgres
 
@@ -1364,6 +1379,10 @@ HEREDOC
 
             local database_data_dir="${host_setup_dir}_${new_app_name}/${database_engine}/data"
 
+            if [ "${port_map}" = ":" ]; then
+              local port_map="${app_port_map}"
+            fi
+
             Start_Or_Attach_To_App_Container \
               "${image_name}" \
               "${elixir_tag}" \
@@ -1416,6 +1435,14 @@ HEREDOC
             exit 0
           ;;
 
+          phx.server | phoenix.server )
+            Print_Text_With_Label "COMMAND" "phx.server, phoenix.server" "4"
+
+            if [ "${port_map}" = ":" ]; then
+              local port_map="${app_port_map}"
+            fi
+          ;;
+
           up )
             Print_Text_With_Label "COMMAND" "up" "4"
 
@@ -1432,6 +1459,10 @@ HEREDOC
                 "${database_container_name}" \
                 "--detach" \
                 "${database_command}"
+            fi
+
+            if [ "${port_map}" = ":" ]; then
+              local port_map="${app_port_map}"
             fi
 
             Start_Dummy_App_Container \
