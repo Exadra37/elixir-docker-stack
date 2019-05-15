@@ -141,13 +141,7 @@ The `hello` app is now running on http://localhost:4000.
 
 ## Creating a New App With a Specific Version of Elixir and Phoenix
 
-Let's imagine that you want to quickly try an old app that is stuck on Elixir
-version `1.4` and Phoenix version `1.3.4`, all you need to do is to...
-
-Let's imagine that you bought a book and discovered that the code examples on it
-only work on Elixir `1.4` and Phoenix `1.3.4`, and instead of figuring out how
-to make the code work for the current versions, you can quickly create a throwaway
-docker stack for it:
+Let's imagine that you want to quickly try an old app that is stuck on Elixir version `1.4` and Phoenix version `1.3.4`, or that you bought a book and discovered that the code examples on it only work on Elixir `1.4` and Phoenix `1.3.4`, and instead of figuring out how to make the code work for the current versions, you can quickly create a throwaway docker stack for it:
 
 ```bash
 mix --elixir-version 1.4.5 --phoenix-version 1.3.4 phx.new myapp
@@ -192,8 +186,7 @@ database_data_dir=/home/exadra37/.elixir-docker-stack/Developer_Acme_Elixir_Phoe
 database_command=postgres
 ```
 
-Now you can follow the same procedures of the `hello` app to have `myapp` up and
-running on http://localhost:4000.
+Now you can follow the same procedures of the `hello` app to have `myapp` up and running on http://localhost:4000.
 
 [Menu](#menu)
 
