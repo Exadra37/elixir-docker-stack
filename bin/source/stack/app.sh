@@ -340,6 +340,9 @@ Start_Or_Attach_To_App_Container()
       --env "APP_NODE_COOKIE=${ERLANG_COOKIE}" \
       --env "MIX_ENV=${mix_env}" \
       --env "XAUTHORITY=${xauth}" \
+      --env SSH_AUTH_SOCK=/ssh-agent \
+      --volume $SSH_AUTH_SOCK:/ssh-agent:ro \
+      --volume ~/.ssh/:/home/developer/.ssh:ro \
       --name "${APP_CONTAINER_NAME}" \
       --hostname "${APP_NAME}" \
       --user "${container_username}" \

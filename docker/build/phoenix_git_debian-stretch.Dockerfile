@@ -10,6 +10,7 @@ USER root
 
 RUN apt update && \
   apt -y upgrade && \
+  apt -y install ssh && \
 
   "${DOCKER_BUILD}"/scripts/nodejs/install.sh "${NODE_VERSION}" && \
 
@@ -21,7 +22,11 @@ RUN apt update && \
 
 USER "${CONTAINER_USER_NAME}"
 
-RUN "${DOCKER_BUILD}"/scripts/elixir/phoenix/install-from-git-branch.bash \
+RUN \
+  mkdir /home/developer/.ssh/ && \
+  ssh-keyscan -t rsa github.com >>  /home/"${CONTAINER_USER_NAME}"/.ssh/known_hosts && \
+  ssh-keyscan -t rsa gitlab.com >> /home/"${CONTAINER_USER_NAME}"/.ssh/known_hosts && \
+  "${DOCKER_BUILD}"/scripts/elixir/phoenix/install-from-git-branch.bash \
   "${DOCKER_PHOENIX_VERSION}"
 
 USER root
