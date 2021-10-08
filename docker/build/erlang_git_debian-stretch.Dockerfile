@@ -35,8 +35,8 @@ WORKDIR "${WORKSPACE_PATH}"
 
 RUN \
   "${DOCKER_BUILD}"/scripts/erlang/rebar/install-rebar3-from-git-branch.sh \
-    "${DOCKER_REBAR3_VERSION}" && \
-  "${DOCKER_BUILD}"/scripts/erlang/docsh/install-docsh-from-git-branch.sh \
-    "${DOCKER_DOCSH_VERSION}"
+    "${DOCKER_REBAR3_VERSION}"
+  # "${DOCKER_BUILD}"/scripts/erlang/docsh/install-docsh-from-git-branch.sh \
+    # "${DOCKER_DOCSH_VERSION}"
 
 CMD ["erl"]

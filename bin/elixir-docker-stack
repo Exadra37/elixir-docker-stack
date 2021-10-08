@@ -103,11 +103,15 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       local EDS_OS_VERSION=stretch
 
-      local EDS_PHOENIX_VERSION=1.4.10
+      local EDS_PHOENIX_VERSION=1.6.0
 
-      local EDS_ELIXIR_VERSION=1.9.4
+      local EDS_ELIXIR_VERSION=1.12.3
 
-      local EDS_ERLANG_OTP_VERSION=22.1.6
+      local EDS_ERLANG_OTP_VERSION=24.1.1
+
+      local EDS_REBAR3_VERSION=3.17.0
+
+      local EDS_DOCSH_VERSION=0.7.2
 
       local background_mode="-it"
 

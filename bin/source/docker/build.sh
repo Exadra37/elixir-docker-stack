@@ -157,6 +157,8 @@ Build_Erlang_Docker_Image()
 
     local build_args="--build-arg OS_TAG=${os_version}"
     local build_args="${build_args} --build-arg DOCKER_ERLANG_VERSION=${erlang_otp_version}"
+    local build_args="${build_args} --build-arg DOCKER_REBAR3_VERSION=${EDS_REBAR3_VERSION}"
+    local build_args="${build_args} --build-arg DOCKER_DOCSH_VERSION=${EDS_DOCSH_VERSION}"
 
     local image_tag="$( Build_Erlang_Tag ${erlang_otp_version} ${stack_build_source} ${os_name} ${os_version} )"
 
@@ -462,6 +464,7 @@ Build_Docker_Image()
     Print_Text_With_Label "DOCKER BUILD ARGS" "${build_args}" "3"
 
     ${SUDO_PREFIX} docker build \
+      --no-cache \
       ${build_options} \
       ${build_args} \
       --file "${dockerfile_path}" \
