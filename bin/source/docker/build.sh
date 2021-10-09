@@ -155,12 +155,11 @@ Build_Erlang_Docker_Image()
   # VARS
   ##############################################################################
 
-    local build_args="--build-arg OS_TAG=${os_version}"
     local build_args="${build_args} --build-arg DOCKER_ERLANG_VERSION=${erlang_otp_version}"
     local build_args="${build_args} --build-arg DOCKER_REBAR3_VERSION=${EDS_REBAR3_VERSION}"
     local build_args="${build_args} --build-arg DOCKER_DOCSH_VERSION=${EDS_DOCSH_VERSION}"
 
-    local image_tag="$( Build_Erlang_Tag ${erlang_otp_version} ${stack_build_source} ${os_name} ${os_version} )"
+    local image_tag="$( Build_Erlang_Tag ${erlang_otp_version} )"
 
 
   ##############################################################################
@@ -186,26 +185,13 @@ Build_Erlang_Tag()
 
     local erlang_otp_version="${1? Missing Erlang version !!!}"
 
-    local stack_build_source="${2? Missing the build source for the docker stack being built !!!}"
-
-    #local os_name="${3? Missing operating system name !!!}"
-
-    #local os_version="${4? Missing operating system version !!!}"
-
-
-  ##############################################################################
-  # VARS
-  ##############################################################################
-
-    #local stack_metadata="$( Build_Stack_Metadata ${stack_build_source} ${os_name} ${os_version} )"
-
 
   ##############################################################################
   # EXECUTION
   ##############################################################################
 
     #echo "${erlang_otp_version}_${stack_metadata}"
-    echo "${erlang_otp_version}_${stack_build_source}"
+    echo "${erlang_otp_version}"
 }
 
 Build_Elixir_Docker_Image()
@@ -249,13 +235,17 @@ Build_Elixir_Docker_Image()
   # EXECUTION
   ##############################################################################
 
-    Build_Erlang_Docker_Image \
-      "${erlang_otp_version}" \
-      "${stack_build_source}" \
-      "${os_name}" \
-      "${os_version}" \
-      "${is_local_docker_image}" \
-      ${build_options}
+    case "${stack_build_source}" in
+      "git" | "esl" )
+        Build_Erlang_Docker_Image \
+          "${erlang_otp_version}" \
+          "${stack_build_source}" \
+          "${os_name}" \
+          "${os_version}" \
+          "${is_local_docker_image}" \
+          ${build_options}
+        ;;
+    esac
 
     Build_Docker_Image \
       "elixir" \
@@ -280,24 +270,12 @@ Build_Elixir_Tag()
 
     local stack_build_source="${3? Missing the build source for the docker stack being built !!!}"
 
-    #local os_name="${4? Missing operating system name !!!}"
-
-    #local os_version="${5? Missing operating system version !!!}"
-
-
-  ##############################################################################
-  # VARS
-  ##############################################################################
-
-    #local stack_metadata="$( Build_Stack_Metadata ${stack_build_source} ${os_name} ${os_version} )"
-
 
   ##############################################################################
   # EXECUTION
   ##############################################################################
 
-    #echo "${elixir_version}_erlang-${erlang_otp_version}_${stack_metadata}"
-    echo "${elixir_version}_erlang-${erlang_otp_version}_${stack_build_source}"
+    echo "${elixir_version}_erlang-${erlang_otp_version}"
 }
 
 Build_Phoenix_Docker_Image()
@@ -336,20 +314,24 @@ Build_Phoenix_Docker_Image()
     local build_args="--build-arg ELIXIR_TAG=${elixir_tag}"
     local build_args="${build_args} --build-arg DOCKER_PHOENIX_VERSION=${phoenix_version}"
 
-    local image_tag="$( Build_Phoenix_Tag ${phoenix_version} ${elixir_version} ${erlang_otp_version} ${stack_build_source} ${os_name} ${os_version} )"
+    local image_tag="$( Build_Phoenix_Tag ${phoenix_version} ${elixir_version} ${erlang_otp_version} )"
 
 
   ##############################################################################
   # EXECUTION
   ##############################################################################
 
-    Build_Erlang_Docker_Image \
-      "${erlang_otp_version}" \
-      "${stack_build_source}" \
-      "${os_name}" \
-      "${os_version}" \
-      "${is_local_docker_image}" \
-      ${build_options}
+    case "${stack_build_source}" in
+      "git" | "esl" )
+        Build_Erlang_Docker_Image \
+          "${erlang_otp_version}" \
+          "${stack_build_source}" \
+          "${os_name}" \
+          "${os_version}" \
+          "${is_local_docker_image}" \
+          ${build_options}
+        ;;
+    esac
 
     Build_Elixir_Docker_Image \
       "${elixir_version}" \
@@ -381,28 +363,12 @@ Build_Phoenix_Tag()
 
     local elixir_version="${2? Missing Elixir Version !!!}"
 
-    local erlang_otp_version="${3? Missing Erlang OTP version !!!}"
-
-    local stack_build_source="${4? Missing the build source for the docker stack being built !!!}"
-
-    #local os_name="${5? Missing operating system name !!!}"
-
-    #local os_version="${6? Missing operating system version !!!}"
-
-
-  ##############################################################################
-  # VARS
-  ##############################################################################
-
-    #local stack_metadata="$( Build_Stack_Metadata  ${stack_build_source} ${os_name} ${os_version} )"
-
 
   ##############################################################################
   # EXECUTION
   ##############################################################################
 
-    #echo "${phoenix_version}_elixir-${elixir_version}_erlang-${erlang_otp_version}_${stack_metadata}"
-    echo "${phoenix_version}_elixir-${elixir_version}_erlang-${erlang_otp_version}_${stack_build_source}"
+    echo "${phoenix_version}_elixir-${elixir_version}_erlang-${erlang_otp_version}"
 }
 
 Build_Docker_Image()
@@ -436,17 +402,69 @@ Build_Docker_Image()
   # VARS
   ##############################################################################
 
+    local image_name="$( Build_Docker_Image_Name ${stack_name} )"
+
+    local image_tag="${image_tag}_${os_name}-${os_version}_${stack_build_source}"
+
     local extension="Dockerfile"
 
     if [ "${is_local_docker_image}" = "true" ]; then
       local extension="local.${extension}"
     fi
 
-    local stack_metadata="$( Build_Stack_Metadata  ${stack_build_source} ${os_name} ${os_version} )"
+    local dockerfile_path="${DOCKER_BUILD_PATH}/${stack_name}_${stack_build_source}_${os_name}-${os_version}.${extension}"
 
-    local dockerfile_path="${DOCKER_BUILD_PATH}/${stack_name}_${stack_metadata}.${extension}"
+    case "${stack_build_source}" in
+      "hexpm" )
+        case "${os_version}" in
 
-    local image_name="$( Build_Docker_Image_Name ${stack_name} )"
+          ### DEBIAN ###
+
+          "bullseye" )
+            build_args="${build_args} --build-arg OS_TAG=bullseye-20210902"
+            ;;
+
+          "bullseye-slim" )
+            build_args="${build_args} --build-arg OS_TAG=bullseye-20210902-slim"
+            ;;
+
+          "stretch" )
+            build_args="${build_args} --build-arg OS_TAG=stretch-20210902"
+            ;;
+
+          "stretch-slim" )
+            build_args="${build_args} --build-arg OS_TAG=stretch-20210902-slim"
+            ;;
+
+
+          ### UBUNTU ###
+
+          "groovy" )
+            build_args="${build_args} --build-arg OS_TAG=groovy-20210325"
+            ;;
+
+          "focal" )
+            build_args="${build_args} --build-arg OS_TAG=focal-20210325"
+            ;;
+
+          "bionic" )
+            build_args="${build_args} --build-arg OS_TAG=bionic-20210325"
+            ;;
+
+          "xenial" )
+            build_args="${build_args} --build-arg OS_TAG=xenial-20210114"
+            ;;
+
+          "trusty" )
+            build_args="${build_args} --build-arg OS_TAG=trusty-20191217"
+            ;;
+
+          * )
+            build_args="${build_args} --build-arg OS_TAG=bullseye-slim"
+            ;;
+        esac
+        ;;
+    esac
 
 
   ##############################################################################
@@ -472,25 +490,25 @@ Build_Docker_Image()
       "${DOCKER_BUILD_PATH}"
 }
 
-Build_Stack_Metadata()
-{
-  ##############################################################################
-  # INBuild_Docker_Image_NamePUT
-  ##############################################################################
+# Build_Stack_Metadata()
+# {
+#   ##############################################################################
+#   # INBuild_Docker_Image_NamePUT
+#   ##############################################################################
 
-    local stack_build_source="${1? Missing the build source for the docker stack being built !!!}"
+#     local stack_build_source="${1? Missing the build source for the docker stack being built !!!}"
 
-    local os_name="${2? Missing operating system name !!!}"
+#     local os_name="${2? Missing operating system name !!!}"
 
-    local os_version="${3? Missing operating system version !!!}"
+#     local os_version="${3? Missing operating system version !!!}"
 
 
-  ##############################################################################
-  # EXECUTION
-  ##############################################################################
+#   ##############################################################################
+#   # EXECUTION
+#   ##############################################################################
 
-    echo "${stack_build_source}_${os_name}-${os_version}"
-}
+#     echo "${stack_build_source}_${os_name}-${os_version}"
+# }
 
 Build_Docker_Image_Name()
 {

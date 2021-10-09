@@ -396,6 +396,14 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
             shift 2
           ;;
 
+          --osv | --os-version )
+            Print_Text_With_Label "OPTION" "--osv, --os-version" "4"
+
+            local EDS_OS_VERSION="${2? Missing OS Version, e.g. debian, slim, ubuntu, alpine}"
+
+            shift 2
+          ;;
+
           --sn | --stack-name )
             Print_Text_With_Label "OPTION" "--sn, --stack-name" "4"
 
