@@ -2,6 +2,30 @@
 
 set -eu
 
+Replace_IP_Address() {
+
+  Print_Text_With_Label "FUNCTION" "Replace_IP_Address" "4"
+
+  ############################################################################
+  # INPUT
+  ############################################################################
+
+    local ip_address="${1? Missing the http port for the Phoenix app !!!}"
+
+    local path_prefix="${2? Missing the path prefix for the project !!!}"
+
+
+  ############################################################################
+  # EXECUTION
+  ############################################################################
+
+    Print_Text_With_Label "ip_address: " "${ip_address}" "1"
+
+    # Fix the http port in the App configuration file.
+    sed -i -e "s/ip: {127, 0, 0, 1}/ip: ${ip_address}/g" ${path_prefix}/config/dev.exs
+    sed -i -e "s/ip: {127, 0, 0, 1}/ip: ${ip_address}/g" ${path_prefix}/config/test.exs
+}
+
 Replace_Http_Port() {
 
   Print_Text_With_Label "FUNCTION" "Replace_Http_Port" "4"
@@ -19,11 +43,11 @@ Replace_Http_Port() {
   # EXECUTION
   ############################################################################
 
-    Print_Text_With_Label "HTTP_PORT: " "${http_port}" "0"
+    Print_Text_With_Label "HTTP_PORT: " "${http_port}" "1"
 
     # Fix the http port in the App configuration file.
-    sed -i -e "s/http: \[port: 4000\]/http: \[port: ${http_port}\]/g" ${path_prefix}/config/dev.exs
-    sed -i -e "s/http: \[port: 4000\]/http: \[port: ${http_port}\]/g" ${path_prefix}/config/test.exs
+    sed -i -e "s/port: 4000/port: ${http_port}/g" ${path_prefix}/config/dev.exs
+    sed -i -e "s/port: 4000/port: ${http_port}/g" ${path_prefix}/config/test.exs
 }
 
 Set_App_Global_Paths()
@@ -334,6 +358,7 @@ Start_Or_Attach_To_App_Container()
       ${CONTAINER_ENV} \
       --publish ${EDS_APP_IP}:${EDS_APP_HTTP_PORT}:${EDS_CONTAINER_HTTP_PORT} \
       --publish ${EDS_APP_IP}:${EDS_APP_HTTPS_PORT}:${EDS_CONTAINER_HTTPS_PORT} \
+      --env "PORT=${EDS_CONTAINER_HTTP_PORT}" \
       --env "APP_HTTP_PORT=${EDS_APP_HTTP_PORT}" \
       --env "APP_HTTPS_PORT=${EDS_APP_HTTPS_PORT}" \
       --env "APP_NODE_NAME=${APP_NODE_NAME}" \

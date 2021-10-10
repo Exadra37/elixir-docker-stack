@@ -95,7 +95,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       local is_local_docker_image=false
 
-      local EDS_STACK_BUILD_SOURCE=git
+      local EDS_STACK_BUILD_SOURCE=hexpm
 
       local EDS_STACK_NAME=phoenix
 
@@ -103,11 +103,11 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       local EDS_OS_VERSION=stretch
 
-      local EDS_PHOENIX_VERSION=1.6.0
+      local EDS_PHOENIX_VERSION=1.6.2
 
       local EDS_ELIXIR_VERSION=1.12.3
 
-      local EDS_ERLANG_OTP_VERSION=24.1.1
+      local EDS_ERLANG_OTP_VERSION=24.1.2
 
       local EDS_REBAR3_VERSION=3.17.0
 
@@ -121,6 +121,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
       local EDS_APP_HTTPS_PORT=4001
       local EDS_CONTAINER_HTTPS_PORT=4001
 
+      local EDS_INTERNAL_IP_ADDRESS="{0, 0, 0, 0}"
 
       local env_file=".env"
 
@@ -183,9 +184,16 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
       local APP_USER_NAME=developer
 
       # from `/home/user/project/app/acme` we will get `app_acme`
-      local APP_NAME=$(Get_Last_Two_Segments "${PWD}" "/" "_")      # from `.local_acme` we will get `local_acme`
+      local APP_NAME=$(Get_Last_Two_Segments "${PWD}" "/" "_")
+
+      # from `.local_acme` we will get `local_acme`
       local APP_NAME=${APP_NAME//./}
+
+      # from `.local/acme` we will get `.local`
       local APP_FOLDER_NAME=${PWD##*/}
+
+      # from `.local` we will get `local`
+      local APP_FOLDER_NAME=${APP_FOLDER_NAME//./}
 
       local APP_CONTAINER_NAME="${APP_NAME}_app"
 
@@ -559,7 +567,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
             break
           ;;
 
-          new | phoenix.new | phx.new )
+          new | phoenix.new | phx.new )
             Print_Text_With_Label "COMMAND" "${1}" "4"
 
             # break parsing the input if --version option is given.
@@ -569,7 +577,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
               ;;
             esac
 
-            Remove_Docker_Network "${APP_NETWORK}"
+            # Remove_Docker_Network "${APP_NETWORK}"
 
             local APP_NAME="${2? Missing path to create the new app!!!}"
 
@@ -582,6 +590,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
             # Nees to be the name of the app, not of the current folder.
             local APP_FOLDER_NAME="${2}"
+            local APP_FOLDER_NAME=${APP_FOLDER_NAME//./}
 
             local APP_NETWORK="${APP_NAME}_network"
 
@@ -736,7 +745,8 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
         local container_username="${APP_USER_NAME}"
       fi
 
-      #Replace_Http_Port "${EDS_APP_HTTP_PORT}" "${APP_PATH}"
+      Replace_IP_Address "${EDS_INTERNAL_IP_ADDRESS}" "${APP_PATH}"
+      Replace_Http_Port "${EDS_APP_HTTP_PORT}" "${APP_PATH}"
 
       Start_Or_Attach_To_App_Container \
         "${EDS_STACK_NAME}" \

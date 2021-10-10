@@ -159,7 +159,7 @@ Build_Erlang_Docker_Image()
     local build_args="${build_args} --build-arg DOCKER_REBAR3_VERSION=${EDS_REBAR3_VERSION}"
     local build_args="${build_args} --build-arg DOCKER_DOCSH_VERSION=${EDS_DOCSH_VERSION}"
 
-    local image_tag="$( Build_Erlang_Tag ${erlang_otp_version} )"
+    local image_tag="$( Build_Erlang_Tag ${erlang_otp_version} ${stack_build_source} ${os_name} ${os_version} )"
 
 
   ##############################################################################
@@ -191,7 +191,7 @@ Build_Erlang_Tag()
   ##############################################################################
 
     #echo "${erlang_otp_version}_${stack_metadata}"
-    echo "${erlang_otp_version}"
+    echo "${erlang_otp_version}_${os_name}-${os_version}__${stack_build_source}"
 }
 
 Build_Elixir_Docker_Image()
@@ -270,12 +270,16 @@ Build_Elixir_Tag()
 
     local stack_build_source="${3? Missing the build source for the docker stack being built !!!}"
 
+    local os_name="${4? Missing operating system name !!!}"
+
+    local os_version="${5? Missing operating system version !!!}"
+
 
   ##############################################################################
   # EXECUTION
   ##############################################################################
 
-    echo "${elixir_version}_erlang-${erlang_otp_version}"
+    echo "${elixir_version}_erlang-${erlang_otp_version}_${os_name}-${os_version}_${stack_build_source}"
 }
 
 Build_Phoenix_Docker_Image()
@@ -314,7 +318,7 @@ Build_Phoenix_Docker_Image()
     local build_args="--build-arg ELIXIR_TAG=${elixir_tag}"
     local build_args="${build_args} --build-arg DOCKER_PHOENIX_VERSION=${phoenix_version}"
 
-    local image_tag="$( Build_Phoenix_Tag ${phoenix_version} ${elixir_version} ${erlang_otp_version} )"
+    local image_tag="$( Build_Phoenix_Tag ${phoenix_version} ${elixir_version} ${erlang_otp_version} ${stack_build_source} ${os_name} ${os_version} )"
 
 
   ##############################################################################
@@ -363,12 +367,20 @@ Build_Phoenix_Tag()
 
     local elixir_version="${2? Missing Elixir Version !!!}"
 
+    local erlang_otp_version="${3? Missing Erlang version !!!}"
+
+    local stack_build_source="${4? Missing the build source for the docker stack being built !!!}"
+
+    local os_name="${5? Missing operating system name !!!}"
+
+    local os_version="${6? Missing operating system version !!!}"
+
 
   ##############################################################################
   # EXECUTION
   ##############################################################################
 
-    echo "${phoenix_version}_elixir-${elixir_version}_erlang-${erlang_otp_version}"
+    echo "${phoenix_version}_elixir-${elixir_version}_erlang-${erlang_otp_version}_${os_name}-${os_version}_${stack_build_source}"
 }
 
 Build_Docker_Image()
@@ -404,7 +416,7 @@ Build_Docker_Image()
 
     local image_name="$( Build_Docker_Image_Name ${stack_name} )"
 
-    local image_tag="${image_tag}_${os_name}-${os_version}_${stack_build_source}"
+    # local image_tag="${image_tag}_${os_name}-${os_version}_${stack_build_source}"
 
     local extension="Dockerfile"
 
@@ -412,7 +424,7 @@ Build_Docker_Image()
       local extension="local.${extension}"
     fi
 
-    local dockerfile_path="${DOCKER_BUILD_PATH}/${stack_name}_${stack_build_source}_${os_name}-${os_version}.${extension}"
+    local dockerfile_path="${DOCKER_BUILD_PATH}/${stack_name}/${stack_build_source}/${os_name}/${os_version}.${extension}"
 
     case "${stack_build_source}" in
       "hexpm" )
@@ -481,13 +493,26 @@ Build_Docker_Image()
 
     Print_Text_With_Label "DOCKER BUILD ARGS" "${build_args}" "3"
 
+    local _docker_image="${image_name}:${image_tag}"
+    local _image_id=$( ${SUDO_PREFIX} docker image ls "${_docker_image}"  | tail -n +2 | awk '{print $3}' )
+
     ${SUDO_PREFIX} docker build \
       --no-cache \
-      ${build_options} \
+      --force-rm \
       ${build_args} \
+      ${build_options} \
       --file "${dockerfile_path}" \
-      --tag "${image_name}:${image_tag}" \
+      --tag "${_docker_image}" \
       "${DOCKER_BUILD_PATH}"
+
+    # When rebuild the same image the old one will be left hanging as <none> in
+    # the output of `docker image ls`, therefore we want to remove it to save
+    # disk save.
+    if [ -n "${_image_id}" ]; then
+      # @TODO This command will fail when a docker container is referencing it.
+      #       We may want to show a user friendly alert to the user when it fails.
+      ${SUDO_PREFIX} docker image rm "${_image_id}"
+    fi
 }
 
 # Build_Stack_Metadata()
