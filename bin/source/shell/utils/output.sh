@@ -34,7 +34,7 @@ Print_Text_With_Label()
         local label_background_color="45"
         ;;
       4 )
-        local label_background_color="46"
+        local label_background_color="41"
         ;;
       * )
         local label_background_color="42"

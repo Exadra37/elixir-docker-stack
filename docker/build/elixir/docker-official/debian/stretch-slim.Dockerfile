@@ -1,0 +1,6 @@
+ARG OS_TAG=slim
+ARG DOCKER_ELIXIR_VERSION=1.12.1
+
+FROM elixir:${DOCKER_ELIXIR_VERSION}-${OS_TAG} AS final
+
+CMD ["elixir"]

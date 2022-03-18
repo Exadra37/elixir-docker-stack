@@ -2,6 +2,35 @@
 
 set -eu
 
+Replace_IP_Address() {
+
+  Print_Text_With_Label "FUNCTION" "Replace_IP_Address" "4"
+
+  ############################################################################
+  # INPUT
+  ############################################################################
+
+    local ip_address="${1? Missing the http port for the Phoenix app !!!}"
+
+    local path_prefix="${2? Missing the path prefix for the project !!!}"
+
+
+  ############################################################################
+  # EXECUTION
+  ############################################################################
+
+    Print_Text_With_Label "ip_address: " "${ip_address}" "1"
+
+    # Fix the http port in the App configuration file.
+    if [ -f "${path_prefix}/config/dev.exs" ]; then
+      sed -i -e "s/ip: {127, 0, 0, 1}/ip: ${ip_address}/g" ${path_prefix}/config/dev.exs
+    fi
+
+    if [ -f "${path_prefix}/config/test.exs" ]; then
+      sed -i -e "s/ip: {127, 0, 0, 1}/ip: ${ip_address}/g" ${path_prefix}/config/test.exs
+    fi
+}
+
 Replace_Http_Port() {
 
   Print_Text_With_Label "FUNCTION" "Replace_Http_Port" "4"
@@ -19,11 +48,16 @@ Replace_Http_Port() {
   # EXECUTION
   ############################################################################
 
-    Print_Text_With_Label "HTTP_PORT: " "${http_port}" "0"
+    Print_Text_With_Label "HTTP_PORT: " "${http_port}" "1"
 
     # Fix the http port in the App configuration file.
-    sed -i -e "s/http: \[port: 4000\]/http: \[port: ${http_port}\]/g" ${path_prefix}/config/dev.exs
-    sed -i -e "s/http: \[port: 4000\]/http: \[port: ${http_port}\]/g" ${path_prefix}/config/test.exs
+    if [ -f "${path_prefix}/config/dev.exs" ]; then
+      sed -i -e "s/port: 4000/port: ${http_port}/g" ${path_prefix}/config/dev.exs
+    fi
+
+    if [ -f "${path_prefix}/config/test.exs" ]; then
+      sed -i -e "s/port: 4000/port: ${http_port}/g" ${path_prefix}/config/test.exs
+    fi
 }
 
 Set_App_Global_Paths()
@@ -327,6 +361,12 @@ Start_Or_Attach_To_App_Container()
         local env_file_option="--env-file ${env_file}"
     fi
 
+    local iex_file="${ELIXIR_DOCKER_STACK_INSTALL_DIR}/bin/.iex.exs"
+
+    if [ -f ~/.iex.exs ]; then
+      iex_file=~/.iex.exs
+    fi
+
     ${SUDO_PREFIX} docker run \
       --rm \
       ${background_mode} \
@@ -334,6 +374,7 @@ Start_Or_Attach_To_App_Container()
       ${CONTAINER_ENV} \
       --publish ${EDS_APP_IP}:${EDS_APP_HTTP_PORT}:${EDS_CONTAINER_HTTP_PORT} \
       --publish ${EDS_APP_IP}:${EDS_APP_HTTPS_PORT}:${EDS_CONTAINER_HTTPS_PORT} \
+      --env "PORT=${EDS_CONTAINER_HTTP_PORT}" \
       --env "APP_HTTP_PORT=${EDS_APP_HTTP_PORT}" \
       --env "APP_HTTPS_PORT=${EDS_APP_HTTPS_PORT}" \
       --env "APP_NODE_NAME=${APP_NODE_NAME}" \
@@ -348,6 +389,7 @@ Start_Or_Attach_To_App_Container()
       --user "${container_username}" \
       --network "${APP_NETWORK}" \
       --workdir /home/"${container_username}/${APP_CONTAINER_RELATIVE_PATH}" \
+      --volume "${iex_file}":/home/"${container_username}"/.iex.exs \
       --volume "${APP_HOST_DIR}":/home/"${container_username}"/workspace \
       --volume "${APP_CONTAINER_NAME}_${image_tag}_var_lib_postgresql":/var/lib/postgresql \
       --volume "${APP_CONTAINER_NAME}_${image_tag}_var_log_postgresql":/var/log/postgresql \
