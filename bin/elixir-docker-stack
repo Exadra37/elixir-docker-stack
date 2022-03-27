@@ -197,7 +197,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       local APP_CONTAINER_NAME="${APP_NAME}_app"
 
-      local APP_NETWORK="${APP_NAME}_network"
+      local APP_NETWORK="${APP_NAME}"
 
       local APP_NODE_NAME=""
 
@@ -238,14 +238,14 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       local EDS_ELIXIR_VERSION=$( Map_Version_For_Docker_Tag ${EDS_ELIXIR_VERSION} ${EDS_STACK_NAME} ${EDS_STACK_BUILD_SOURCE} )
 
+      local IS_TO_PUBLISH_PORTS="false"
+
 
     ############################################################################
     # PARSE INPUT / EXECUTION
     ############################################################################
 
       mkdir -p "${HOST_SETUP_PATH}"
-
-      Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
 
       #trap "Trap_Exit" SIGINT SIGKILL SIGTERM
       trap "Trap_Exit" EXIT
@@ -386,12 +386,39 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
             shift 2
           ;;
 
+          --name )
+
+            if [ ${app_container_command} == "iex" ]; then
+              # When we want to run locally two or more docker containers
+              # simulating nodes across different machines we need to start iex
+              # in separated containers, that will share the same docker network.
+              #
+              # So, if we start two iex sessions, one with iex --name user@example.com
+              # and another with iex --name user@exadra37.com, then each will be
+              # able to connect to the other, because docker will route example.com
+              # and exadra37.com through the shared docker network, and once the
+              # docker containers have the same names as the domains they will
+              # be the ones handling the connection, thus not trying to reach
+              # the real domains on the internet.
+
+              # from user@example.com we get example.com
+              APP_CONTAINER_NAME=$(Get_Last_Segment "${2}" "@")
+
+              # the docker network that containers started with iex --name must
+              # share in order for the nodes be able to connect to each other.
+              APP_NETWORK="elixir-docker-stack"
+            fi
+
+          ;;
+
           --no-cache )
             # not implemented yet
           ;;
 
           -p | --publish )
             Print_Text_With_Label "OPTION" "-p, --publish" "4"
+
+            IS_TO_PUBLISH_PORTS="true"
 
             local EDS_APP_HTTP_PORT=${2? Missing port to publish for the container, eg: 4800 !!!}
             shift 2
@@ -592,11 +619,11 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
             local APP_FOLDER_NAME="${2}"
             local APP_FOLDER_NAME=${APP_FOLDER_NAME//./}
 
-            local APP_NETWORK="${APP_NAME}_network"
+            local APP_NETWORK="${APP_NAME}"
 
             local APP_PATH="${APP_PATH}/${APP_FOLDER_NAME}"
 
-            Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
+            # Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
 
             if [ -z "${container_username}" ]; then
               local container_username="${APP_USER_NAME}"
@@ -657,6 +684,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
           ;;
 
           phx.server | phoenix.server )
+            IS_TO_PUBLISH_PORTS="true"
             Print_Text_With_Label "APP LISTENING ON: " "${EDS_APP_IP}:${EDS_APP_HTTP_PORT}:${EDS_CONTAINER_HTTP_PORT}" "0"
           ;;
 
@@ -669,6 +697,8 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
           up )
             Print_Text_With_Label "COMMAND" "up" "4"
+
+            IS_TO_PUBLISH_PORTS="true"
 
             shift 1
 

@@ -367,13 +367,43 @@ Start_Or_Attach_To_App_Container()
       iex_file=~/.iex.exs
     fi
 
+    local _publish_ports=""
+
+    if [ ${IS_TO_PUBLISH_PORTS} == "true" ]; then
+      _publish_ports="--publish ${EDS_APP_IP}:${EDS_APP_HTTP_PORT}:${EDS_CONTAINER_HTTP_PORT}"
+      _publish_ports="${_publish_ports} --publish ${EDS_APP_IP}:${EDS_APP_HTTPS_PORT}:${EDS_CONTAINER_HTTPS_PORT}"
+    fi
+
+    local _erlang_cookie_path=""
+
+    local _user="${HOME?The \$USER var is not set in the environment}"
+
+    if [ -f ~/.erlang.cookie ]; then
+      _erlang_cookie_path=/home/{_user}/.erlang.cookie
+    fi
+
+    if [ -f ./.erlang.cookie ]; then
+      _erlang_cookie_path="${PWD}"/.erlang.cookie
+    fi
+
+    if [ -z "${_erlang_cookie_path}" ]; then
+      local _cookie="$(Random_Cookie_String)"
+      echo "${_cookie}" > ~/.erlang.cookie
+      _erlang_cookie_path=/home/{_user}/.erlang.cookie
+    fi
+
+    Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
+
+    # Raises an Erlang error when starting the iex session with `iex --name user@example.com`.
+    # It works if we start the iex session with the `--cookie mycookie` flag.
+    # --volume "${_erlang_cookie_path}":/home/"${container_username}"/.erlang.cookie \
+
     ${SUDO_PREFIX} docker run \
       --rm \
       ${background_mode} \
       ${env_file_option} \
       ${CONTAINER_ENV} \
-      --publish ${EDS_APP_IP}:${EDS_APP_HTTP_PORT}:${EDS_CONTAINER_HTTP_PORT} \
-      --publish ${EDS_APP_IP}:${EDS_APP_HTTPS_PORT}:${EDS_CONTAINER_HTTPS_PORT} \
+      ${_publish_ports} \
       --env "PORT=${EDS_CONTAINER_HTTP_PORT}" \
       --env "APP_HTTP_PORT=${EDS_APP_HTTP_PORT}" \
       --env "APP_HTTPS_PORT=${EDS_APP_HTTPS_PORT}" \
