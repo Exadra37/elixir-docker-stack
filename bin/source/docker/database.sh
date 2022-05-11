@@ -168,6 +168,8 @@ Start_Or_Attach_To_Database_Container()
       return 0
     fi
 
+    Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
+
     Print_Text_With_Label "INVOKED COMMAND" "${databse_execute_command} ${args}" "2"
 
     # @TODO Add support to use POSTGRES_PASSWORD from .env file

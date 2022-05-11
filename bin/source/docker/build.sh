@@ -223,9 +223,9 @@ Build_Elixir_Docker_Image()
   # VARS
   ##############################################################################
 
-    local eralng_tag="$( Build_Erlang_Tag ${erlang_otp_version} ${stack_build_source} ${os_name} ${os_version} )"
+    # local erlang_tag="$( Build_Erlang_Tag ${erlang_otp_version} ${stack_build_source} ${os_name} ${os_version} )"
 
-    local build_args="--build-arg ERLANG_TAG=${eralng_tag}"
+    local build_args="--build-arg DOCKER_ERLANG_VERSION=${erlang_otp_version}"
     local build_args="${build_args} --build-arg DOCKER_ELIXIR_VERSION=${elixir_version}"
 
     local image_tag="$( Build_Elixir_Tag ${elixir_version} ${erlang_otp_version} ${stack_build_source} ${os_name} ${os_version} )"

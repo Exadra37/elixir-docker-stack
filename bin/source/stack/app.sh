@@ -183,14 +183,31 @@ Is_App_With_Database()
 
     Print_Text_With_Label "Config file Path" "${config_file}" "3"
 
-    # Converts `my_APP_FOLDER_NAME` to `myappname` do that we can use a grep case
+    # Converts `my_APP_NAME` to `myappname` do that we can use a grep case
     # insensitive search on the string `MyAppName.Repo`.
-    local repo_name="${APP_FOLDER_NAME//[^[:alpha:]]/}.Repo"
+    local repo_name="${APP_NAME//[^[:alnum:]]/}.Repo"
     Print_Text_With_Label "Repository Name" "${repo_name}" "3"
 
     grep -iq "${repo_name}," "${config_file}" 2&> /dev/null
 
     return $?
+}
+
+Add_Database_If_Required()
+{
+  if Is_App_With_Database; then
+
+    # Pinning database defaults to be used each time we run the Elixir Docker Stack
+    echo "EDS_DATABASE_IMAGE=${EDS_DATABASE_IMAGE}" >> "${APP_PATH}/${stack_defaults_file}"
+    echo "EDS_DATABASE_USER=${EDS_DATABASE_USER}" >> "${APP_PATH}/${stack_defaults_file}"
+    echo "EDS_DATABASE_COMMAND=${EDS_DATABASE_COMMAND}" >> "${APP_PATH}/${stack_defaults_file}"
+
+    local database_container_name="$( Build_Database_Container_Name ${EDS_DATABASE_IMAGE} )"
+
+    # Fix the database hostname in the App configuration file.
+    sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_container_name}\"/g" ${APP_PATH}/config/dev.exs
+    sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_container_name}\"/g" ${APP_PATH}/config/test.exs
+  fi
 }
 
 
@@ -229,9 +246,13 @@ Attach_To_App_Container()
 
     ${SUDO_PREFIX} docker exec \
       --user ${container_username} \
+      ${CONTAINER_ENV} \
       --env "MIX_ENV=${mix_env}" \
       --env "APP_NODE_NAME=${APP_NODE_NAME}" \
       --env "APP_NODE_COOKIE=${ERLANG_COOKIE}" \
+      --env "PORT=${EDS_CONTAINER_HTTP_PORT}" \
+      --env "APP_HTTP_PORT=${EDS_APP_HTTP_PORT}" \
+      --env "APP_HTTPS_PORT=${EDS_APP_HTTPS_PORT}" \
       ${background_mode} \
       ${APP_CONTAINER_NAME} \
       ${app_container_command} ${args}
@@ -394,6 +415,8 @@ Start_Or_Attach_To_App_Container()
 
     Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
 
+    mkdir -p "${APP_HOST_DIR}"/.local/mix
+
     # Raises an Erlang error when starting the iex session with `iex --name user@example.com`.
     # It works if we start the iex session with the `--cookie mycookie` flag.
     # --volume "${_erlang_cookie_path}":/home/"${container_username}"/.erlang.cookie \
@@ -420,6 +443,7 @@ Start_Or_Attach_To_App_Container()
       --network "${APP_NETWORK}" \
       --workdir /home/"${container_username}/${APP_CONTAINER_RELATIVE_PATH}" \
       --volume "${iex_file}":/home/"${container_username}"/.iex.exs \
+      --volume "${APP_HOST_DIR}"/.local/mix/:/home/"${container_username}"/.cache/mix/ \
       --volume "${APP_HOST_DIR}":/home/"${container_username}"/workspace \
       --volume "${APP_CONTAINER_NAME}_${image_tag}_var_lib_postgresql":/var/lib/postgresql \
       --volume "${APP_CONTAINER_NAME}_${image_tag}_var_log_postgresql":/var/log/postgresql \

@@ -35,7 +35,9 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       Print_Text_With_Label "TRAPPING EXIT" "Removing docker network on exit, only if no containers are attached to it." "4"
 
-      Remove_Docker_Network_If_Not_Active "${APP_NETWORK}"
+      # Remove_Docker_Network_If_Not_Active "${APP_NETWORK}"
+
+      Remove_Docker_Network_If_Container_Is_Not_Running "${APP_NETWORK}" "${APP_CONTAINER_NAME}"
 
       exit ${exit_code}
   }
@@ -141,6 +143,19 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       local EDS_APP_IP=127.0.0.1
 
+      # from `/home/user/project/app/acme` we will get `app_acme`
+      # local APP_NAME=$(Get_Last_Two_Segments "${PWD}" "/" "_")
+      local APP_NAME=$(Get_Last_Segment "${PWD}" "/")
+
+      # from `.local_acme` we will get `local_acme`
+      local APP_NAME=${APP_NAME//./}
+
+      # from `.local/acme` we will get `.local`
+      local APP_FOLDER_NAME=${PWD##*/}
+
+      # from `.local` we will get `local`
+      local APP_FOLDER_NAME=${APP_FOLDER_NAME//./}
+
 
       # We can override any of the above variables in the .elixir-docker-stack-defaults
       # file in the home directory or from the root for the project we are
@@ -152,7 +167,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
         source ~/"${stack_defaults_file}"
       fi
 
-      # It will override any variable already declared the ~/.env.elixir-docker-stack-defaults.
+      # It will override any variable already declared the ~/.elixir-docker-stack-defaults.
       #
       # Bear in mind that some can be override if provided as an argument or option
       # to this bash script.
@@ -182,18 +197,6 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
       local HOST_SETUP_PATH="${ELIXIR_DOCKER_STACK_DATA_DIR}/${CURRENT_PATH//\//_}"
 
       local APP_USER_NAME=developer
-
-      # from `/home/user/project/app/acme` we will get `app_acme`
-      local APP_NAME=$(Get_Last_Two_Segments "${PWD}" "/" "_")
-
-      # from `.local_acme` we will get `local_acme`
-      local APP_NAME=${APP_NAME//./}
-
-      # from `.local/acme` we will get `.local`
-      local APP_FOLDER_NAME=${PWD##*/}
-
-      # from `.local` we will get `local`
-      local APP_FOLDER_NAME=${APP_FOLDER_NAME//./}
 
       local APP_CONTAINER_NAME="${APP_NAME}_app"
 
@@ -274,6 +277,8 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
             shift 1
 
+            Add_Database_If_Required
+
             Start_Or_Attach_To_Database_Container \
               "${EDS_DATABASE_IMAGE}" \
               "${EDS_DATABASE_USER}" \
@@ -291,7 +296,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
           -e | --env )
             Print_Text_With_Label "OPTION" "-e, --env" "4"
 
-            local CONTAINER_ENV="${CONTAINER_ENV} --env ${2? Missing env variable !!!}"
+            CONTAINER_ENV="${CONTAINER_ENV} --env ${2? Missing env variable !!!}"
             shift 2
           ;;
 
@@ -415,14 +420,27 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
             # not implemented yet
           ;;
 
-          -p | --publish )
-            Print_Text_With_Label "OPTION" "-p, --publish" "4"
+          -p | --port )
+            Print_Text_With_Label "OPTION" "-p, --port" "4"
 
             IS_TO_PUBLISH_PORTS="true"
 
             local EDS_APP_HTTP_PORT=${2? Missing port to publish for the container, eg: 4800 !!!}
+            local EDS_CONTAINER_HTTP_PORT=${EDS_APP_HTTP_PORT}
+
             shift 2
           ;;
+
+          --port-https )
+              Print_Text_With_Label "OPTION" "--port-https" "4"
+
+              IS_TO_PUBLISH_PORTS="true"
+
+              local EDS_APP_HTTPS_PORT=${2? Missing port to publish for the container, eg: 4800 !!!}
+              local EDS_CONTAINER_HTTPS_PORT=${EDS_APP_HTTPS_PORT}
+
+              shift 2
+            ;;
 
           --pv | --phoenix-version )
             Print_Text_With_Label "OPTION" "--pv, --phoenix-version" "4"
@@ -666,19 +684,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
               ;;
             esac
 
-            if Is_App_With_Database; then
-
-              # Pinning database defaults to be used each time we run the Elixir Docker Stack
-              echo "EDS_DATABASE_IMAGE=${EDS_DATABASE_IMAGE}" >> "${APP_PATH}/${stack_defaults_file}"
-              echo "EDS_DATABASE_USER=${EDS_DATABASE_USER}" >> "${APP_PATH}/${stack_defaults_file}"
-              echo "EDS_DATABASE_COMMAND=${EDS_DATABASE_COMMAND}" >> "${APP_PATH}/${stack_defaults_file}"
-
-              local database_container_name="$( Build_Database_Container_Name ${EDS_DATABASE_IMAGE} )"
-
-              # Fix the database hostname in the App configuration file.
-              sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_container_name}\"/g" ${APP_PATH}/config/dev.exs
-              sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_container_name}\"/g" ${APP_PATH}/config/test.exs
-            fi
+            Add_Database_If_Required
 
             exit 0
           ;;

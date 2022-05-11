@@ -220,7 +220,7 @@ Remove_Docker_Network_If_Container_Is_Not_Running()
   # EXECUTION
   ############################################################################
 
-    if ! Docker_Container_Is_Running "${container_name}"; then
-      Remove_Docker_Network "${network_name}"
-    fi
+    # if ! Docker_Container_Is_Running "${container_name}"; then
+    #   Remove_Docker_Network_If_Not_Active "${network_name}" &> /dev/null
+    # fi
 }
