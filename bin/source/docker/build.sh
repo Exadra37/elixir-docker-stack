@@ -433,11 +433,19 @@ Build_Docker_Image()
           ### DEBIAN ###
 
           "bullseye" )
-            build_args="${build_args} --build-arg OS_TAG=bullseye-20210902"
+            build_args="${build_args} --build-arg OS_TAG=bullseye-20221004"
             ;;
 
           "bullseye-slim" )
-            build_args="${build_args} --build-arg OS_TAG=bullseye-20210902-slim"
+            build_args="${build_args} --build-arg OS_TAG=bullseye-20221004-slim"
+            ;;
+
+          "buster" )
+            build_args="${build_args} --build-arg OS_TAG=buster-20221004"
+            ;;
+
+          "buster-slim" )
+            build_args="${build_args} --build-arg OS_TAG=buster-20221004-slim"
             ;;
 
           "stretch" )
