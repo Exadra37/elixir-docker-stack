@@ -4,6 +4,17 @@ set -eu
 
 Add_Archictecture() {
 
+  local _command=${1? Missing command to create the resource and actions, e.g. foo:fetch,add,mofify,remove }
+
+  # from foo:fetch,add we get: foo
+  local _resource=${1%%:*}
+
+  # from foo:fetch,add we get: fetch,add
+  local _actions=${1##*:}
+
+  local _resource_capitalized="${1}"
+  local _resource_lowercase="${2}"
+
   local _mix_file_path="${APP_PATH}/mix.exs"
 
   # From defmodule HelloWorld.Mixproject do we get: HelloWorld.Mixproject
@@ -258,7 +269,7 @@ end
 EOF
 
 cat <<EOF > "${_resource_path}/add/${_resource_lowercase}_context.ex"
-defmodule ${_module_name}.Resources.${_resource_capitalized}.Add.${_resource_capitalized}Context do
+defmodule ${_module_name}.Resources.${_resource_capitalized}.Add.${_resource_capitalized}AddContext do
 
   ### THIS IS JUST AN EXAMPLE CONTEXT FOR A RESOURCE ACTION ###
   # Online Shop APP example: OnlineShop.Resources.Product.Add
@@ -271,7 +282,7 @@ end
 EOF
 
 cat <<EOF > "${_resource_path}/modify/${_resource_lowercase}_context.ex"
-defmodule ${_module_name}.Resources.${_resource_capitalized}.Modify.${_resource_capitalized}Context do
+defmodule ${_module_name}.Resources.${_resource_capitalized}.Modify.${_resource_capitalized}ModifyContext do
 
   ### THIS IS JUST AN EXAMPLE CONTEXT FOR A RESOURCE ACTION ###
   # Online Shop APP example: OnlineShop.Resources.Product.Modify
