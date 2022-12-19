@@ -19,13 +19,17 @@ Add_Archictecture() {
   local _lib_path="${APP_PATH}/lib"
   local _lib_app_path="${APP_PATH}/lib/${_app_name}"
 
-  _Add_API
-  _Add_Runtime
-  _Add_Implementation
+  _Add_API "Foo" "foo"
+  _Add_Runtime "Foo" "foo"
+  _Add_Resource "Foo" "foo"
 }
 
 _Add_API() {
-  local _api_file_path="${_lib_path}/${_app_name}_api.ex"
+  local _resource_capitalized="${1}"
+  local _resource_lowercase="${2}"
+
+  local _api_file_path="${_lib_path}/${_resource_lowercase}_api.ex"
+  local _private_api_file_path="${_lib_path}/${_resource_lowercase}_private_api.ex"
   # local _api_file_path="${_lib_path}/runtime_api.ex"
 
   mv "${_lib_path}/${_app_name}.ex" "${_api_file_path}"
@@ -34,32 +38,57 @@ _Add_API() {
   #   sed -i -e "s/${_module_name} do/${_module_name}Api do/" "${_api_file_path}"
   # fi
 
-  cat <<EOF > "${_api_file_path}"
-defmodule ${_module_name}Api do
+  cat <<EOF > "${_private_api_file_path}"
+defmodule ${_module_name}.${_resource_capitalized}PrivateApi do
 
-  alias ${_module_name}.Runtime.Server
+  ### THIS IS JUST AN EXAMPLE SERVER ###
+  # Online Shop APP example: OnlineShopPrivateApi
+
+  # def fetch_product(uuid), do: OnlineShop.Resources.Product.Fetch.ProductContext.fetch_product(uuid)
+  def fetch_${_resource_lowercase}(uuid), do: ${_module_name}.Resources.${_resource_capitalized}.Fetch.${_resource_capitalized}Context.fetch_${_resource_lowercase}(uuid)
+
+  # def add_product(data), do: OnlineShop.Resources.Product.Add.ProductContext.add_product(data)
+  def add_${_resource_lowercase}(data), do: ${_module_name}.Resources.${_resource_capitalized}.Add.${_resource_capitalized}Context.add_${_resource_lowercase}(data)
+
+  # def modify_product(data), do: OnlineShop.Resources.Product.Modify.ProductContext.modify_product(data)
+  def modify_${_resource_lowercase}(data), do: ${_module_name}.Resources.${_resource_capitalized}.Modify.${_resource_capitalized}Context.modify_${_resource_lowercase}(data)
+
+  # def remove_product(uuid), do: OnlineShop.Resources.Product.Remove.ProductContext.remove_product(uuid)
+  def remove_${_resource_lowercase}(uuid), do: ${_module_name}.Resources.${_resource_capitalized}.Remove.${_resource_capitalized}Context.remove_${_resource_lowercase}(uuid)
+
+end
+
+EOF
+
+  cat <<EOF > "${_api_file_path}"
+defmodule ${_module_name}.${_resource_capitalized}Api do
+
+  ### THIS IS JUST AN EXAMPLE API ###
+  # Online Shop APP example: OnlineShopApi
+
+  alias ${_module_name}.Runtime.${_resource_capitalized}Server
 
   @timeout 5000
 
-  def new_dynamic_server() do
-    {:ok, pid} = ${_module_name}.Runtime.Application.start_dynamic_server()
+  def new_${_resource_lowercase}_server() do
+    {:ok, pid} = ${_module_name}.Runtime.Application.start_${_resource_lowercase}_server()
     pid
   end
 
-  def fetch(request) do
-    GenServer.call(pid, {:fetch, request}, @timeout)
+  def fetch_${_resource_lowercase}(pid, uuid) do
+    GenServer.call(pid, {:fetch_${_resource_lowercase}, uuid}, @timeout)
   end
 
-  def add(request) do
-    GenServer.call(pid, {:add, request}, @timeout)
+  def add_${_resource_lowercase}(pid, data) do
+    GenServer.call(pid, {:add_${_resource_lowercase}, data}, @timeout)
   end
 
-  def modify(request) do
-    GenServer.call(pid, {:modify, request}, @timeout)
+  def modify_${_resource_lowercase}(pid, data) do
+    GenServer.call(pid, {:modify_${_resource_lowercase}, data}, @timeout)
   end
 
-  def remove(request) do
-    GenServer.call(pid, {:remove, request}, @timeout)
+  def remove_${_resource_lowercase}(pid, uuid) do
+    GenServer.call(pid, {:remove_${_resource_lowercase}, uuid}, @timeout)
   end
 
 end
@@ -67,6 +96,9 @@ EOF
 }
 
 _Add_Runtime() {
+  local _resource_capitalized="${1}"
+  local _resource_lowercase="${2}"
+
   local _application_file_path="${_lib_app_path}/application.ex"
 
   if [ ! -f "${_application_file_path}" ]; then
@@ -93,8 +125,6 @@ defmodule ${_module_name}.Runtime.Application do
 
   use Application
 
-  @dynamic_supervisor_name ${_module_name}.DynamicSupervisor
-
   @impl true
   def start(_type, _args) do
     children = [
@@ -102,8 +132,8 @@ defmodule ${_module_name}.Runtime.Application do
       # {${_module_name}.Worker, arg}
 
       # The :strategy here is the one to be used by the DynamicSupervisor to
-      # supervise the hangman games it will start on demand.
-      { DynamicSupervisor, strategy: :one_for_one, name: @dynamic_supervisor_name },
+      # supervise the server it will start on demand.
+      { DynamicSupervisor, strategy: :one_for_one, name: ${_module_name}.${_resource_capitalized}DynamicSupervisor },
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -112,8 +142,8 @@ defmodule ${_module_name}.Runtime.Application do
     Supervisor.start_link(children, opts)
   end
 
-  def start_dynamic_server() do
-    DynamicSupervisor.start_child(@dynamic_supervisor_name, { ${_module_name}.Runtime.Server, nil })
+  def start_${_resource_lowercase}_server() do
+    DynamicSupervisor.start_child(${_module_name}.${_resource_capitalized}DynamicSupervisor, { ${_module_name}.Runtime.${_resource_capitalized}Server, nil })
   end
 
 end
@@ -145,11 +175,11 @@ defmodule Watchdog do
 end
 EOF
 
-  cat <<EOF > "${_lib_path}/runtime/server.ex"
-defmodule ${_module_name}.Runtime.Server do
+  cat <<EOF > "${_lib_path}/runtime/${_resource_lowercase}_server.ex"
+defmodule ${_module_name}.Runtime.${_resource_capitalized}Server do
 
   ### THIS IS JUST AN EXAMPLE SERVER ###
-  # Todo APP example: Todos.Runtime.Server
+  # Online Shop APP example: OnlineShop.Runtime.ProductServer
 
   use GenServer
 
@@ -166,90 +196,118 @@ defmodule ${_module_name}.Runtime.Server do
 
   ### Runs in this Server Process
 
-  def init(initial_state // %{}) do
+  def init(initial_state \\\ %{}) do
     watcher = Watchdog.start(@idle_timeout_milleseconds)
     { :ok, {initial_state, watcher} }
   end
 
-  def handle_call({:fetch, data}, _from, {_state, watcher}) do
+  def handle_call({:fetch_${_resource_lowercase}, uuid}, _from, {state, watcher}) do
     Watchdog.im_alive(watcher)
-    result = ${_module_name}PrivateApi.fetch(data)
-    { :reply, {result, watcher} }
+    result = ${_module_name}.${_resource_capitalized}PrivateApi.fetch_${_resource_lowercase}(uuid)
+    { :reply, result, {state, watcher} }
   end
 
-  def handle_call({:add, data}, _from, {_state, watcher}) do
+  def handle_call({:add_${_resource_lowercase}, data}, _from, {state, watcher}) do
     Watchdog.im_alive(watcher)
-    result = ${_module_name}PrivateApi.add(data)
-    { :reply, {result, watcher} }
+    result = ${_module_name}.${_resource_capitalized}PrivateApi.add_${_resource_lowercase}(data)
+    { :reply, result, {state, watcher} }
   end
 
-  def handle_call({:modify, data}, _from, {_state, watcher}) do
+  def handle_call({:modify_${_resource_lowercase}, data}, _from, {state, watcher}) do
     Watchdog.im_alive(watcher)
-    result = ${_module_name}PrivateApi.modify(data)
-    { :reply, {result, watcher} }
+    result = ${_module_name}.${_resource_capitalized}PrivateApi.modify_${_resource_lowercase}(data)
+    { :reply, result, {state, watcher} }
   end
 
-  def handle_call({:remove, data}, _from, {_state, watcher}) do
+  def handle_call({:remove_${_resource_lowercase}, uuid}, _from, {state, watcher}) do
     Watchdog.im_alive(watcher)
-    result = ${_module_name}PrivateApi.remove(data)
-    { :reply, {result, watcher} }
+    result = ${_module_name}.${_resource_capitalized}PrivateApi.remove_${_resource_lowercase}(uuid)
+    { :reply, result, {state, watcher} }
   end
 
 end
 EOF
 }
 
-_Add_Implementation() {
+_Add_Resource() {
 
-  local _impl_path="${_lib_path}/impl"
+  local _resource_capitalized="${1}"
+  local _resource_lowercase="${2}"
 
-  local _resource_path="${_impl_path}/resource_name/"
-  local _action_path="${_resource_path}/action_name"
+  local resources_path="${_lib_path}/resources"
 
-  mkdir -p "${_action_path}"
+  local _resource_path="${resources_path}/${_resource_lowercase}"
+  # local _action_path="${_resource_path}/action_name"
 
-cat <<EOF > "${_action_path}/context.ex"
-defmodule ${_module_name}.Impl.ResourceName.ActionName.Context do
+  mkdir -p "${_resource_path}/fetch"
+  mkdir -p "${_resource_path}/add"
+  mkdir -p "${_resource_path}/modify"
+  mkdir -p "${_resource_path}/remove"
+
+cat <<EOF > "${_resource_path}/fetch/${_resource_lowercase}_context.ex"
+defmodule ${_module_name}.Resources.${_resource_capitalized}.Fetch.${_resource_capitalized}Context do
 
   ### THIS IS JUST AN EXAMPLE CONTEXT FOR A RESOURCE ACTION ###
-  # Todo APP example: Todos.Impl.Todo.Add
+  # Online Shop APP example: OnlineShop.Resources.Product.Fetch
 
-  # def add() do
-  def action_name() do
+  def fetch_${_resource_lowercase}(uuid) do
     # your logic goes here...
+    uuid
   end
 end
 EOF
 
-cat <<EOF > "${_resource_path}/contract_v1.ex"
-defmodule ${_module_name}.Impl.ResourceName.ContractV1 do
+cat <<EOF > "${_resource_path}/add/${_resource_lowercase}_context.ex"
+defmodule ${_module_name}.Resources.${_resource_capitalized}.Add.${_resource_capitalized}Context do
+
+  ### THIS IS JUST AN EXAMPLE CONTEXT FOR A RESOURCE ACTION ###
+  # Online Shop APP example: OnlineShop.Resources.Product.Add
+
+  def add_${_resource_lowercase}(data) do
+    # your logic goes here...
+    data
+  end
+end
+EOF
+
+cat <<EOF > "${_resource_path}/modify/${_resource_lowercase}_context.ex"
+defmodule ${_module_name}.Resources.${_resource_capitalized}.Modify.${_resource_capitalized}Context do
+
+  ### THIS IS JUST AN EXAMPLE CONTEXT FOR A RESOURCE ACTION ###
+  # Online Shop APP example: OnlineShop.Resources.Product.Modify
+
+  def modify_${_resource_lowercase}(data) do
+    # your logic goes here...
+    data
+  end
+end
+EOF
+
+cat <<EOF > "${_resource_path}/remove/${_resource_lowercase}_context.ex"
+defmodule ${_module_name}.Resources.${_resource_capitalized}.Remove.${_resource_capitalized}Context do
+
+  ### THIS IS JUST AN EXAMPLE CONTEXT FOR A RESOURCE ACTION ###
+  # Online Shop APP example: OnlineShop.Resources.Product.Remove
+
+  def remove_${_resource_lowercase}(uuid) do
+    # your logic goes here...
+    uuid
+  end
+end
+EOF
+
+cat <<EOF > "${_resource_path}/${_resource_lowercase}_contract_v1.ex"
+defmodule ${_module_name}.Resources.${_resource_capitalized}.${_resource_capitalized}ContractV1 do
 
   ### THIS IS JUST AN EXAMPLE CONTRACT ###
-  # Todo App example: Todos.Impl.Todo.ContractV1
+  # Online Shop App example: OnlineShop.Resources.Product.ProductContractV1
 
-  use Domo
+  @enforce_keys [:title, :since]
+  defstruct [
+    title: nil,
+    since: nil,
+  ]
 
-  typedstruct do
-    field :type, :professional | :personal
-    field :title, String.t()
-    field :since, NaiveDateTime.t(), default: NaiveDateTime.utc_now()
-  end
-
-  @all_types %{
-    professional: "Professional",
-    personal: "Personal",
-  }
-
-  @types Map.keys(@all_types)
-
-  def default(), do: new_for!(:professional)
-
-  def new_for!(type), do: new!(type: type, title: @all_types[type])
-  def new_for!(type, title: title), do: new!(type: type, title: title)
-
-  def types(), do: @types
-
-  def all_types(), do: @all_types
 end
 EOF
 }
