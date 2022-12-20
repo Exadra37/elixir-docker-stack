@@ -4,18 +4,25 @@ set -eu
 
 Add_Archictecture() {
 
-  local _command=${1? Missing command to create the resource and actions, e.g. foo:fetch,add,mofify,remove }
+  local _app_path="${1? Missing the app path, e,g. ./path/to/app/folder}"
+
+  local _command=${2? Missing command to create the resource and actions, e.g. foo:fetch,add,mofify,remove }
 
   # from foo:fetch,add we get: foo
-  local _resource=${1%%:*}
+  local _resource=${_command%%:*}
 
   # from foo:fetch,add we get: fetch,add
-  local _actions=${1##*:}
+  local _actions_string=${_command##*:}
 
-  local _resource_capitalized="${1}"
-  local _resource_lowercase="${2}"
+  # DOESN'T WORK ON FUCKING MACs
+  # local _resource_capitalized="${_resource^}"
+  local _resource_capitalized="$(echo ${_resource} | awk '{$1=toupper(substr($1,0,1))substr($1,2)}1')"
 
-  local _mix_file_path="${APP_PATH}/mix.exs"
+  # DOESN'T WORK ON FUCKING MACs
+  # local _resource_lowercase="${_resource,,}"
+  local _resource_lowercase="$(echo ${_resource} | awk '{$1=tolower($1)}1')"
+
+  local _mix_file_path="${_app_path}/mix.exs"
 
   # From defmodule HelloWorld.Mixproject do we get: HelloWorld.Mixproject
   local _first_line="$(cat ${_mix_file_path} | head -n 1 | awk '{print $2}')"
@@ -24,58 +31,55 @@ Add_Archictecture() {
   local _module_name="${_first_line%.*}"
 
   # From ~/some/absolute/path/hello_world we get: hello_world
-  local _app_name="${APP_PATH##*/}"
+  local _app_name="${_app_path##*/}"
 
   # From mix phx_new hello_world we get: hello_world/lib/hello_world
-  local _lib_path="${APP_PATH}/lib"
-  local _lib_app_path="${APP_PATH}/lib/${_app_name}"
+  local _lib_path="${_app_path}/lib"
+  local _lib_app_path="${_app_path}/lib/${_app_name}"
 
-  _Add_API "Foo" "foo"
-  _Add_Runtime "Foo" "foo"
-  _Add_Resource "Foo" "foo"
+  IFS=', ' read -r -a _actions <<< "${_actions_string}"
+
+  _Add_Resource_Public_API
+  _Add_Resource_Private_API
+
+  # for action in "${_actions[@]}"; do
+  #   local _action_capitalised="${action^}"
+  #   local _action_lowercase="${action,,}"
+  #   # echo $(_Build_Action)
+  #   _Add_Runtime
+  #   _Add_Resource
+  # done
 }
 
-_Add_API() {
-  local _resource_capitalized="${1}"
-  local _resource_lowercase="${2}"
+# defmodule OnlineShop.ProductApi do
+#
+#   alias OnlineShop.Runtime.ProductServer
+#
+#   @timeout 5000
+#
+#   def new_product_server() do
+#     {:ok, pid} = OnlineShop.Runtime.Application.start_product_server()
+#     pid
+#   end
+#
+#   def fetch_product(pid, uuid) do
+#     GenServer.call(pid, {:fetch_product, uuid}, @timeout)
+#   end
+#
+#   def add_product(pid, uuid) do
+#     GenServer.call(pid, {:add_product, uuid}, @timeout)
+#   end
+#
+# end
+_Add_Resource_Public_API() {
 
   local _api_file_path="${_lib_path}/${_resource_lowercase}_api.ex"
-  local _private_api_file_path="${_lib_path}/${_resource_lowercase}_private_api.ex"
-  # local _api_file_path="${_lib_path}/runtime_api.ex"
 
   mv "${_lib_path}/${_app_name}.ex" "${_api_file_path}"
 
-  # if ! grep -qw "${_module_name}Api do" "${_api_file_path}" 2&> /dev/null; then
-  #   sed -i -e "s/${_module_name} do/${_module_name}Api do/" "${_api_file_path}"
-  # fi
-
-  cat <<EOF > "${_private_api_file_path}"
-defmodule ${_module_name}.${_resource_capitalized}PrivateApi do
-
-  ### THIS IS JUST AN EXAMPLE SERVER ###
-  # Online Shop APP example: OnlineShopPrivateApi
-
-  # def fetch_product(uuid), do: OnlineShop.Resources.Product.Fetch.ProductContext.fetch_product(uuid)
-  def fetch_${_resource_lowercase}(uuid), do: ${_module_name}.Resources.${_resource_capitalized}.Fetch.${_resource_capitalized}Context.fetch_${_resource_lowercase}(uuid)
-
-  # def add_product(data), do: OnlineShop.Resources.Product.Add.ProductContext.add_product(data)
-  def add_${_resource_lowercase}(data), do: ${_module_name}.Resources.${_resource_capitalized}.Add.${_resource_capitalized}Context.add_${_resource_lowercase}(data)
-
-  # def modify_product(data), do: OnlineShop.Resources.Product.Modify.ProductContext.modify_product(data)
-  def modify_${_resource_lowercase}(data), do: ${_module_name}.Resources.${_resource_capitalized}.Modify.${_resource_capitalized}Context.modify_${_resource_lowercase}(data)
-
-  # def remove_product(uuid), do: OnlineShop.Resources.Product.Remove.ProductContext.remove_product(uuid)
-  def remove_${_resource_lowercase}(uuid), do: ${_module_name}.Resources.${_resource_capitalized}.Remove.${_resource_capitalized}Context.remove_${_resource_lowercase}(uuid)
-
-end
-
-EOF
-
-  cat <<EOF > "${_api_file_path}"
+  ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
+cat <<EOF > "${_api_file_path}"
 defmodule ${_module_name}.${_resource_capitalized}Api do
-
-  ### THIS IS JUST AN EXAMPLE API ###
-  # Online Shop APP example: OnlineShopApi
 
   alias ${_module_name}.Runtime.${_resource_capitalized}Server
 
@@ -86,29 +90,63 @@ defmodule ${_module_name}.${_resource_capitalized}Api do
     pid
   end
 
-  def fetch_${_resource_lowercase}(pid, uuid) do
-    GenServer.call(pid, {:fetch_${_resource_lowercase}, uuid}, @timeout)
-  end
-
-  def add_${_resource_lowercase}(pid, data) do
-    GenServer.call(pid, {:add_${_resource_lowercase}, data}, @timeout)
-  end
-
-  def modify_${_resource_lowercase}(pid, data) do
-    GenServer.call(pid, {:modify_${_resource_lowercase}, data}, @timeout)
-  end
-
-  def remove_${_resource_lowercase}(pid, uuid) do
-    GenServer.call(pid, {:remove_${_resource_lowercase}, uuid}, @timeout)
-  end
-
-end
 EOF
+
+  for action in "${_actions[@]}"; do
+    local _action_capitalised="${action^}"
+    local _action_lowercase="${action,,}"
+
+### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
+cat <<EOF >> "${_api_file_path}"
+  def ${_action_lowercase}_${_resource_lowercase}(pid, uuid) do
+    GenServer.call(pid, {:${_action_lowercase}_${_resource_lowercase}, uuid}, @timeout)
+  end
+
+EOF
+
+  done
+
+  printf "end\n" >> "${_api_file_path}"
+}
+
+# defmodule OnlineShop.ProductPrivateApi do
+#
+#   alias OnlineShop.Resources.Product
+#
+#   def fetch_product(attrs), do: Product.Fetch.ProductFetchContext.fetch_product(attrs)
+#
+#   def add_product(attrs), do: Product.Add.ProductAddContext.add_product(attrs)
+#
+# end
+_Add_Resource_Private_API() {
+  local _private_api_file_path="${_lib_path}/${_resource_lowercase}_private_api.ex"
+
+  touch "${_private_api_file_path}"
+
+ ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
+cat <<EOF >> "${_private_api_file_path}"
+defmodule ${_module_name}.${_resource_capitalized}PrivateApi do
+
+  alias ${_module_name}.Resources.${_resource_capitalized}
+
+EOF
+
+  for action in "${_actions[@]}"; do
+    local _action_capitalised="${action^}"
+    local _action_lowercase="${action,,}"
+
+### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
+# def fetch_product(atts), do: OnlineShop.Resources.Product.Fetch.ProductContext.fetch_product(atts)
+cat <<EOF >> "${_private_api_file_path}"
+  def ${_action_lowercase}_${_resource_lowercase}(attrs), do: ${_resource_capitalized}.${_action_capitalised}.${_resource_capitalized}${_action_capitalised}Context.${_action_lowercase}_${_resource_lowercase}(attrs)
+
+EOF
+  done
+
+  printf "end\n" >> "${_private_api_file_path}"
 }
 
 _Add_Runtime() {
-  local _resource_capitalized="${1}"
-  local _resource_lowercase="${2}"
 
   local _application_file_path="${_lib_app_path}/application.ex"
 
@@ -119,10 +157,6 @@ _Add_Runtime() {
   if ! grep -qw "${_module_name}.Runtime.Application," "${_mix_file_path}" 2&> /dev/null; then
     sed -i -e "s/${_module_name}.Application,/${_module_name}.Runtime.Application,/" "${_mix_file_path}"
   fi
-
-  # if ! grep -qw "${_module_name}.Runtime.Application do" "${_application_file_path}" 2&> /dev/null; then
-  #   sed -i -e "s/${_module_name}.Application do/${_module_name}.Runtime.Application do/" "${_application_file_path}"
-  # fi
 
   mv "${_lib_app_path}" "${_lib_path}/runtime"
 
@@ -242,9 +276,6 @@ EOF
 
 _Add_Resource() {
 
-  local _resource_capitalized="${1}"
-  local _resource_lowercase="${2}"
-
   local resources_path="${_lib_path}/resources"
 
   local _resource_path="${resources_path}/${_resource_lowercase}"
@@ -322,3 +353,17 @@ defmodule ${_module_name}.Resources.${_resource_capitalized}.${_resource_capital
 end
 EOF
 }
+
+Main() {
+  for input in "${@}"; do
+    case "${input}" in
+
+      --add-architecture )
+          shift 1
+          Add_Archictecture "${@}"
+        ;;
+    esac
+  done
+}
+
+Main "${@}"

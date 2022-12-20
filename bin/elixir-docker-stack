@@ -703,7 +703,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
 
             echo "EDS_REBAR3_VERSION=${EDS_REBAR3_VERSION:-3.20.0}" >> "${APP_PATH}/${stack_defaults_file}"
 
-            Add_Archictecture
+            # Add_Archictecture "${APP_PATH}"
 
             exit 0
           ;;
