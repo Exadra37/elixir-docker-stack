@@ -42,7 +42,7 @@ Add_Archictecture() {
     local _lib_app_path="${_app_path}/lib/${_app_name}"
     local _lib_runtime_path="${_lib_path}/runtime"
 
-    if [ -f "${_lib_app_path}" ]; then
+    if [ -d "${_lib_app_path}" ]; then
       mv "${_lib_app_path}" "${_lib_runtime_path}"
     fi
 
@@ -280,7 +280,9 @@ EOF
 
 _Add_Runtime_Server() {
 
-  cat <<EOF > "${_lib_path}/runtime/${_resource_lowercase}_server.ex"
+local server_file="${_lib_path}/runtime/${_resource_lowercase}_server.ex"
+
+cat <<EOF > "${server_file}"
 defmodule ${_module_name}.Runtime.${_resource_capitalized}Server do
 
   use GenServer
@@ -303,32 +305,22 @@ defmodule ${_module_name}.Runtime.${_resource_capitalized}Server do
     { :ok, {initial_state, watcher} }
   end
 
-  def handle_call({:fetch_${_resource_lowercase}, uuid}, _from, {state, watcher}) do
-    Watchdog.im_alive(watcher)
-    result = ${_module_name}.${_resource_capitalized}PrivateApi.fetch_${_resource_lowercase}(uuid)
-    { :reply, result, {state, watcher} }
-  end
-
-  def handle_call({:add_${_resource_lowercase}, data}, _from, {state, watcher}) do
-    Watchdog.im_alive(watcher)
-    result = ${_module_name}.${_resource_capitalized}PrivateApi.add_${_resource_lowercase}(data)
-    { :reply, result, {state, watcher} }
-  end
-
-  def handle_call({:modify_${_resource_lowercase}, data}, _from, {state, watcher}) do
-    Watchdog.im_alive(watcher)
-    result = ${_module_name}.${_resource_capitalized}PrivateApi.modify_${_resource_lowercase}(data)
-    { :reply, result, {state, watcher} }
-  end
-
-  def handle_call({:remove_${_resource_lowercase}, uuid}, _from, {state, watcher}) do
-    Watchdog.im_alive(watcher)
-    result = ${_module_name}.${_resource_capitalized}PrivateApi.remove_${_resource_lowercase}(uuid)
-    { :reply, result, {state, watcher} }
-  end
-
-end
 EOF
+
+for action in "${_actions[@]}"; do
+    local _action_capitalised="${action^}"
+    local _action_lowercase="${action,,}"
+cat <<EOF >> "${server_file}"
+  def handle_call({:${_action_lowercase}_${_resource_lowercase}, uuid}, _from, {state, watcher}) do
+    Watchdog.im_alive(watcher)
+    result = ${_module_name}.${_resource_capitalized}PrivateApi.${_action_lowercase}_${_resource_lowercase}(uuid)
+    { :reply, result, {state, watcher} }
+  end
+
+EOF
+done
+
+  echo "end" >> "${server_file}"
 }
 
 _Add_Resource() {
@@ -336,79 +328,34 @@ _Add_Resource() {
   local resources_path="${_lib_path}/resources"
 
   local _resource_path="${resources_path}/${_resource_lowercase}"
-  # local _action_path="${_resource_path}/action_name"
 
-  mkdir -p "${_resource_path}/fetch"
-  mkdir -p "${_resource_path}/add"
-  mkdir -p "${_resource_path}/modify"
-  mkdir -p "${_resource_path}/remove"
+  for action in "${_actions[@]}"; do
+    local _action_capitalised="${action^}"
+    local _action_lowercase="${action,,}"
 
-cat <<EOF > "${_resource_path}/fetch/${_resource_lowercase}_context.ex"
-defmodule ${_module_name}.Resources.${_resource_capitalized}.Fetch.${_resource_capitalized}Context do
+    mkdir -p "${_resource_path}/${_action_lowercase}"
 
-  ### THIS IS JUST AN EXAMPLE CONTEXT FOR A RESOURCE ACTION ###
-  # Online Shop APP example: OnlineShop.Resources.Product.Fetch
+    local context_file="${_resource_path}/${_action_lowercase}/${_resource_lowercase}_context.ex"
 
-  def fetch_${_resource_lowercase}(uuid) do
+    local _line="defmodule ${_module_name}.Resources.${_resource_capitalized}.${_action_capitalised}.${_resource_capitalized}${_action_capitalised}Context do"
+
+    if ! grep -qw "${_line}" "${context_file}" 2&> /dev/null; then
+      printf "${_line}\n\n" > "${context_file}"
+    fi
+
+    if ! grep -qw "def ${_action_lowercase}_${_resource_lowercase}(attrs) do" "${context_file}" 2&> /dev/null; then
+cat <<EOF >> "${context_file}"
+  def ${_action_lowercase}_${_resource_lowercase}(attrs) do
     # your logic goes here...
-    uuid
+    attrs
   end
-end
+
 EOF
+    fi
 
-cat <<EOF > "${_resource_path}/add/${_resource_lowercase}_context.ex"
-defmodule ${_module_name}.Resources.${_resource_capitalized}.Add.${_resource_capitalized}AddContext do
+    echo "end" >> "${context_file}"
+  done
 
-  ### THIS IS JUST AN EXAMPLE CONTEXT FOR A RESOURCE ACTION ###
-  # Online Shop APP example: OnlineShop.Resources.Product.Add
-
-  def add_${_resource_lowercase}(data) do
-    # your logic goes here...
-    data
-  end
-end
-EOF
-
-cat <<EOF > "${_resource_path}/modify/${_resource_lowercase}_context.ex"
-defmodule ${_module_name}.Resources.${_resource_capitalized}.Modify.${_resource_capitalized}ModifyContext do
-
-  ### THIS IS JUST AN EXAMPLE CONTEXT FOR A RESOURCE ACTION ###
-  # Online Shop APP example: OnlineShop.Resources.Product.Modify
-
-  def modify_${_resource_lowercase}(data) do
-    # your logic goes here...
-    data
-  end
-end
-EOF
-
-cat <<EOF > "${_resource_path}/remove/${_resource_lowercase}_context.ex"
-defmodule ${_module_name}.Resources.${_resource_capitalized}.Remove.${_resource_capitalized}Context do
-
-  ### THIS IS JUST AN EXAMPLE CONTEXT FOR A RESOURCE ACTION ###
-  # Online Shop APP example: OnlineShop.Resources.Product.Remove
-
-  def remove_${_resource_lowercase}(uuid) do
-    # your logic goes here...
-    uuid
-  end
-end
-EOF
-
-cat <<EOF > "${_resource_path}/${_resource_lowercase}_contract_v1.ex"
-defmodule ${_module_name}.Resources.${_resource_capitalized}.${_resource_capitalized}ContractV1 do
-
-  ### THIS IS JUST AN EXAMPLE CONTRACT ###
-  # Online Shop App example: OnlineShop.Resources.Product.ProductContractV1
-
-  @enforce_keys [:title, :since]
-  defstruct [
-    title: nil,
-    since: nil,
-  ]
-
-end
-EOF
 }
 
 Main() {
