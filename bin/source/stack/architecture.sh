@@ -1,46 +1,61 @@
-#!/bin/sh
+#!/bin/bash
 
 set -eu
 
 Add_Archictecture() {
 
   local _app_path="${1? Missing the app path, e,g. ./path/to/app/folder}"
+  shift 1
+  local _check=${1? Missing command to create the resource and actions, e.g. foo:fetch,add,mofify,remove }
 
-  local _command=${2? Missing command to create the resource and actions, e.g. foo:fetch,add,mofify,remove }
+  IFS=' ' read -r -a _resources <<< "${@}"
 
-  # from foo:fetch,add we get: foo
-  local _resource=${_command%%:*}
+  for _command in ${_resources[@]}; do
 
-  # from foo:fetch,add we get: fetch,add
-  local _actions_string=${_command##*:}
+    # from foo:fetch,add we get: foo
+    local _resource=${_command%%:*}
 
-  # DOESN'T WORK ON FUCKING MACs
-  # local _resource_capitalized="${_resource^}"
-  local _resource_capitalized="$(echo ${_resource} | awk '{$1=toupper(substr($1,0,1))substr($1,2)}1')"
+    # from foo:fetch,add we get: fetch,add
+    local _actions_string=${_command##*:}
 
-  # DOESN'T WORK ON FUCKING MACs
-  # local _resource_lowercase="${_resource,,}"
-  local _resource_lowercase="$(echo ${_resource} | awk '{$1=tolower($1)}1')"
+    # DOESN'T WORK ON FUCKING MACs
+    # local _resource_capitalized="${_resource^}"
+    local _resource_capitalized="$(echo ${_resource} | awk '{$1=toupper(substr($1,0,1))substr($1,2)}1')"
 
-  local _mix_file_path="${_app_path}/mix.exs"
+    # DOESN'T WORK ON FUCKING MACs
+    # local _resource_lowercase="${_resource,,}"
+    local _resource_lowercase="$(echo ${_resource} | awk '{$1=tolower($1)}1')"
 
-  # From defmodule HelloWorld.Mixproject do we get: HelloWorld.Mixproject
-  local _first_line="$(cat ${_mix_file_path} | head -n 1 | awk '{print $2}')"
+    local _mix_file_path="${_app_path}/mix.exs"
 
-  # From HelloWorld.Mixproject we get: HelloWorld
-  local _module_name="${_first_line%.*}"
+    # From defmodule HelloWorld.Mixproject do we get: HelloWorld.Mixproject
+    local _first_line="$(cat ${_mix_file_path} | head -n 1 | awk '{print $2}')"
 
-  # From ~/some/absolute/path/hello_world we get: hello_world
-  local _app_name="${_app_path##*/}"
+    # From HelloWorld.Mixproject we get: HelloWorld
+    local _module_name="${_first_line%.*}"
 
-  # From mix phx_new hello_world we get: hello_world/lib/hello_world
-  local _lib_path="${_app_path}/lib"
-  local _lib_app_path="${_app_path}/lib/${_app_name}"
+    # From ~/some/absolute/path/hello_world we get: hello_world
+    local _app_name="${_app_path##*/}"
 
-  IFS=', ' read -r -a _actions <<< "${_actions_string}"
+    # From mix phx_new hello_world we get: hello_world/lib/hello_world
+    local _lib_path="${_app_path}/lib"
+    local _lib_app_path="${_app_path}/lib/${_app_name}"
+    local _lib_runtime_path="${_lib_path}/runtime"
 
-  _Add_Resource_Public_API
-  _Add_Resource_Private_API
+    if [ -f "${_lib_app_path}" ]; then
+      mv "${_lib_app_path}" "${_lib_runtime_path}"
+    fi
+
+    IFS=', ' read -r -a _actions <<< "${_actions_string}"
+
+    _Add_Resource
+    _Add_Resource_Public_API
+    _Add_Resource_Private_API
+    _Add_Runtime_Watchdog
+    _Add_Runtime_Server
+    _Add_Runtime_Apllication
+
+  done
 
   # for action in "${_actions[@]}"; do
   #   local _action_capitalised="${action^}"
@@ -75,7 +90,7 @@ _Add_Resource_Public_API() {
 
   local _api_file_path="${_lib_path}/${_resource_lowercase}_api.ex"
 
-  mv "${_lib_path}/${_app_name}.ex" "${_api_file_path}"
+  rm -f "${_lib_path}/${_app_name}.ex"
 
   ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
 cat <<EOF > "${_api_file_path}"
@@ -146,56 +161,30 @@ EOF
   printf "end\n" >> "${_private_api_file_path}"
 }
 
-_Add_Runtime() {
-
-  local _application_file_path="${_lib_app_path}/application.ex"
-
-  if [ ! -f "${_application_file_path}" ]; then
-    return
-  fi
-
-  if ! grep -qw "${_module_name}.Runtime.Application," "${_mix_file_path}" 2&> /dev/null; then
-    sed -i -e "s/${_module_name}.Application,/${_module_name}.Runtime.Application,/" "${_mix_file_path}"
-  fi
-
-  mv "${_lib_app_path}" "${_lib_path}/runtime"
-
-
-  cat <<EOF > "${_lib_path}/runtime/application.ex"
-defmodule ${_module_name}.Runtime.Application do
-
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
-  @moduledoc false
-
-  use Application
-
-  @impl true
-  def start(_type, _args) do
-    children = [
-      # Starts a worker by calling: ${_module_name}.Worker.start_link(arg)
-      # {${_module_name}.Worker, arg}
-
-      # The :strategy here is the one to be used by the DynamicSupervisor to
-      # supervise the server it will start on demand.
-      { DynamicSupervisor, strategy: :one_for_one, name: ${_module_name}.${_resource_capitalized}DynamicSupervisor },
-    ]
-
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: ${_module_name}.Supervisor]
-    Supervisor.start_link(children, opts)
-  end
-
-  def start_${_resource_lowercase}_server() do
-    DynamicSupervisor.start_child(${_module_name}.${_resource_capitalized}DynamicSupervisor, { ${_module_name}.Runtime.${_resource_capitalized}Server, nil })
-  end
-
-end
-
-EOF
-
-  cat <<EOF > "${_lib_path}/runtime/watchdog.ex"
+# defmodule Watchdog do
+#
+#   def start(expire_time_milleseconds) do
+#     spawn_link(fn -> watcher(expire_time_milleseconds) end)
+#   end
+#
+#   def im_alive(watcher) do
+#     send(watcher, :im_alive)
+#   end
+#
+#   defp watcher(expire_time_milleseconds) do
+#     receive do
+#       :im_alive ->
+#         watcher(expire_time_milleseconds)
+#
+#     after
+#       expire_time_milleseconds ->
+#         Process.exit(self(), {:shutdown, :watchdog_triggered})
+#     end
+#   end
+#
+# end
+_Add_Runtime_Watchdog() {
+cat <<EOF > "${_lib_path}/runtime/watchdog.ex"
 defmodule Watchdog do
 
   def start(expire_time_milleseconds) do
@@ -219,12 +208,80 @@ defmodule Watchdog do
 
 end
 EOF
+}
+
+# defmodule OnlineShop.Runtime.Application do
+#
+#   # See https://hexdocs.pm/elixir/Application.html
+#   # for more information on OTP Applications
+#   @moduledoc false
+#
+#   use Application
+#
+#   @impl true
+#   def start(_type, _args) do
+#     children = [
+#       { DynamicSupervisor, strategy: :one_for_one, name: OnlineShop.ProductDynamicSupervisor },
+#
+#       # Starts a worker by calling: OnlineShop.Worker.start_link(arg)
+#       # {OnlineShop.Worker, arg}
+#     ]
+#
+#     # See https://hexdocs.pm/elixir/Supervisor.html
+#     # for other strategies and supported options
+#     opts = [strategy: :one_for_one, name: OnlineShop.Supervisor]
+#     Supervisor.start_link(children, opts)
+#   end
+#
+#   def start_product_server() do
+#     DynamicSupervisor.start_child(OnlineShop.ProductDynamicSupervisor, { OnlineShop.Runtime.ProductServer, nil })
+#   end
+#
+# end
+_Add_Runtime_Apllication() {
+
+  local _application_file_path="${_lib_runtime_path}/application.ex"
+
+  # if [ ! -f "${_application_file_path}" ]; then
+  #   return
+  # fi
+
+  if ! grep -qw "${_module_name}.Runtime.Application," "${_mix_file_path}" 2&> /dev/null; then
+    sed -i -e "s/${_module_name}.Application,/${_module_name}.Runtime.Application,/" "${_mix_file_path}"
+  fi
+
+  if ! grep -qw "${_module_name}.Runtime.Application," "${_application_file_path}" 2&> /dev/null; then
+    sed -i -e "s/${_module_name}.Application,/${_module_name}.Runtime.Application,/" "${_application_file_path}"
+  fi
+
+  local _line="{ DynamicSupervisor, strategy: :one_for_one, name: ${_module_name}.${_resource_capitalized}DynamicSupervisor }"
+
+  if ! grep -qw "${_line}" "${_application_file_path}" 2&> /dev/null; then
+    sed -i -e "s/children = \[/children = \[\\n      ${_line},\\n/" "${_application_file_path}"
+  fi
+
+  if ! grep -qw "def start_${_resource_lowercase}_server()" "${_application_file_path}" 2&> /dev/null; then
+    # sed -i -e "s/${_module_name}.Application,/${_module_name}.Runtime.Application,/" "${_application_file_path}"
+
+    local _file=$(awk 'NR>1 && /./ { print buf; buf=rs=""} { buf=(buf rs $0); rs=RS }' "${_application_file_path}")
+    echo "${_file}" > "${_application_file_path}"
+
+cat << EOF >> "${_application_file_path}"
+
+  def start_${_resource_lowercase}_server() do
+    DynamicSupervisor.start_child(${_module_name}.${_resource_capitalized}DynamicSupervisor, { ${_module_name}.Runtime.${_resource_capitalized}Server, nil })
+  end
+
+end
+EOF
+
+  fi
+}
+
+_Add_Runtime_Server() {
 
   cat <<EOF > "${_lib_path}/runtime/${_resource_lowercase}_server.ex"
 defmodule ${_module_name}.Runtime.${_resource_capitalized}Server do
-
-  ### THIS IS JUST AN EXAMPLE SERVER ###
-  # Online Shop APP example: OnlineShop.Runtime.ProductServer
 
   use GenServer
 
