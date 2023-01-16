@@ -395,6 +395,10 @@ Start_Or_Attach_To_App_Container()
       _publish_ports="${_publish_ports} --publish ${EDS_APP_IP}:${EDS_APP_HTTPS_PORT}:${EDS_CONTAINER_HTTPS_PORT}"
     fi
 
+    if [ ${IS_TO_PUBLISH_UDP_PORTS} == "true" ]; then
+      _publish_ports="${_publish_ports} --publish ${EDS_UDP_IP}:${EDS_UDP_PORT}:${EDS_CONTAINER_UDP_PORT}/udp"
+    fi
+
     local _erlang_cookie_path=""
 
     local _user="${HOME?The \$USER var is not set in the environment}"

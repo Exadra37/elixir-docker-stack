@@ -144,6 +144,11 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
 
       local EDS_APP_IP=127.0.0.1
 
+      local IS_TO_PUBLISH_UDP_PORTS="false"
+      local EDS_UDP_IP=0.0.0.0
+      local EDS_UDP_PORT=2052
+      local EDS_CONTAINER_UDP_PORT=2052
+
       # from `/home/user/project/app/acme` we will get `app_acme`
       # local APP_NAME=$(Get_Last_Two_Segments "${PWD}" "/" "_")
       local APP_NAME=$(Get_Last_Segment "${PWD}" "/")
@@ -251,6 +256,8 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
       local EDS_ELIXIR_VERSION=$( Map_Version_For_Docker_Tag ${EDS_ELIXIR_VERSION} ${EDS_STACK_NAME} ${EDS_STACK_BUILD_SOURCE} )
 
       local IS_TO_PUBLISH_PORTS="false"
+
+      local RESOURCES=
 
 
     ############################################################################
@@ -466,6 +473,14 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
             shift 2
           ;;
 
+          --resources )
+            Print_Text_With_Label "OPTION" "--resources" "4"
+
+            RESOURCES="${2? Missing resources to create e.g. categories:fetch,add product:fetch,add,modify,remove}"
+
+            shift 2
+          ;;
+
           --sn | --stack-name )
             Print_Text_With_Label "OPTION" "--sn, --stack-name" "4"
 
@@ -479,6 +494,22 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
 
             local container_username=${2? Missing user for container!!!}
             shift 2
+          ;;
+
+          --udp )
+            Print_Text_With_Label "OPTION" "--udp" "4"
+
+            IS_TO_PUBLISH_UDP_PORTS="true"
+
+            EDS_UDP_PORT="${2? Missing udp port, e.g. 2052}"
+            EDS_CONTAINER_UDP_PORT="${EDS_UDP_PORT}"
+            EDS_UDP_IP="${3:-127.0.0.1}"
+
+            shift 2
+
+            if [ "$#" -ge 1 ]; then
+              shift 1
+            fi
           ;;
 
           --verbose )
@@ -657,6 +688,8 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
             local APP_PATH="${APP_PATH}/${APP_FOLDER_NAME}"
 
             # Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
+            # sudo docker network ls
+            # sleep 3
 
             if [ -z "${container_username}" ]; then
               local container_username="${APP_USER_NAME}"
@@ -703,7 +736,9 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
 
             echo "EDS_REBAR3_VERSION=${EDS_REBAR3_VERSION:-3.20.0}" >> "${APP_PATH}/${stack_defaults_file}"
 
-            # Add_Archictecture "${APP_PATH}"
+            if [ -n "${RESOURCES}" ]; then
+              Add_Archictecture "${APP_PATH}" "${RESOURCES}"
+            fi
 
             exit 0
           ;;

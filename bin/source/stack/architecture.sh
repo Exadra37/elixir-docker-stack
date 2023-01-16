@@ -2,6 +2,12 @@
 
 set -eu
 
+Remove_Last_Non_Empty_Line() {
+  local file="${1? Missing path to file you want to remove the last non empry line}"
+  local content=$(awk 'NR>1 && /./ { print buf; buf=rs=""} { buf=(buf rs $0); rs=RS }' "${file}")
+  echo "${content}" > "${file}"
+}
+
 Add_Archictecture() {
 
   local _app_path="${1? Missing the app path, e,g. ./path/to/app/folder}"
@@ -18,8 +24,8 @@ Add_Archictecture() {
     # from foo:fetch,add we get: fetch,add
     local _actions_string=${_command##*:}
 
-    # DOESN'T WORK ON FUCKING MACs
     # local _resource_capitalized="${_resource^}"
+    # DOESN'T WORK ON FUCKING MACs
     local _resource_capitalized="$(echo ${_resource} | awk '{$1=toupper(substr($1,0,1))substr($1,2)}1')"
 
     # DOESN'T WORK ON FUCKING MACs
@@ -56,14 +62,6 @@ Add_Archictecture() {
     _Add_Runtime_Apllication
 
   done
-
-  # for action in "${_actions[@]}"; do
-  #   local _action_capitalised="${action^}"
-  #   local _action_lowercase="${action,,}"
-  #   # echo $(_Build_Action)
-  #   _Add_Runtime
-  #   _Add_Resource
-  # done
 }
 
 # defmodule OnlineShop.ProductApi do
@@ -77,12 +75,12 @@ Add_Archictecture() {
 #     pid
 #   end
 #
-#   def fetch_product(pid, uuid) do
-#     GenServer.call(pid, {:fetch_product, uuid}, @timeout)
+#   def fetch_product(pid, attrs) do
+#     GenServer.call(pid, {:fetch_product, attrs}, @timeout)
 #   end
 #
-#   def add_product(pid, uuid) do
-#     GenServer.call(pid, {:add_product, uuid}, @timeout)
+#   def add_product(pid, attrs) do
+#     GenServer.call(pid, {:add_product, attrs}, @timeout)
 #   end
 #
 # end
@@ -113,8 +111,8 @@ EOF
 
 ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
 cat <<EOF >> "${_api_file_path}"
-  def ${_action_lowercase}_${_resource_lowercase}(pid, uuid) do
-    GenServer.call(pid, {:${_action_lowercase}_${_resource_lowercase}, uuid}, @timeout)
+  def ${_action_lowercase}_${_resource_lowercase}(pid, attrs) do
+    GenServer.call(pid, {:${_action_lowercase}_${_resource_lowercase}, attrs}, @timeout)
   end
 
 EOF
@@ -136,29 +134,33 @@ EOF
 _Add_Resource_Private_API() {
   local _private_api_file_path="${_lib_path}/${_resource_lowercase}_private_api.ex"
 
-  touch "${_private_api_file_path}"
+  if [ ! -f "${_private_api_file_path}" ]; then
+    ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
+    printf "defmodule ${_module_name}.${_resource_capitalized}PrivateApi do" > "${_private_api_file_path}"
+  fi
 
- ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
-cat <<EOF >> "${_private_api_file_path}"
-defmodule ${_module_name}.${_resource_capitalized}PrivateApi do
+  local line="alias ${_module_name}.Resources.${_resource_capitalized}"
 
-  alias ${_module_name}.Resources.${_resource_capitalized}
+  if ! grep -qw "${line}" "${_private_api_file_path}" 2&> /dev/null; then
+    printf "\n  ${line}\n\n"
+  fi
 
-EOF
+  Remove_Last_Non_Empty_Line "${_private_api_file_path}"
 
   for action in "${_actions[@]}"; do
     local _action_capitalised="${action^}"
     local _action_lowercase="${action,,}"
 
-### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
-# def fetch_product(atts), do: OnlineShop.Resources.Product.Fetch.ProductContext.fetch_product(atts)
-cat <<EOF >> "${_private_api_file_path}"
-  def ${_action_lowercase}_${_resource_lowercase}(attrs), do: ${_resource_capitalized}.${_action_capitalised}.${_resource_capitalized}${_action_capitalised}Context.${_action_lowercase}_${_resource_lowercase}(attrs)
+    ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
+    # def fetch_product(atts), do: OnlineShop.Resources.Product.Fetch.ProductContext.fetch_product(atts)
+    local line="def ${_action_lowercase}_${_resource_lowercase}(attrs), do: ${_resource_capitalized}.${_action_capitalised}.${_resource_capitalized}${_action_capitalised}Context.${_action_lowercase}_${_resource_lowercase}(attrs)"
 
-EOF
+    if ! grep -qw "${line}" "${_private_api_file_path}" 2&> /dev/null; then
+      printf "\n  ${line}\n" >> "${_private_api_file_path}"
+    fi
   done
 
-  printf "end\n" >> "${_private_api_file_path}"
+  printf "\nend\n" >> "${_private_api_file_path}"
 }
 
 # defmodule Watchdog do
@@ -184,7 +186,14 @@ EOF
 #
 # end
 _Add_Runtime_Watchdog() {
-cat <<EOF > "${_lib_path}/runtime/watchdog.ex"
+
+  local watchdog_file="${_lib_path}/runtime/watchdog.ex"
+
+  if [ -f "${watchdog_file}" ]; then
+    return
+  fi
+
+cat <<EOF > "${watchdog_file}"
 defmodule Watchdog do
 
   def start(expire_time_milleseconds) do
@@ -207,6 +216,7 @@ defmodule Watchdog do
   end
 
 end
+
 EOF
 }
 
@@ -242,16 +252,12 @@ _Add_Runtime_Apllication() {
 
   local _application_file_path="${_lib_runtime_path}/application.ex"
 
-  # if [ ! -f "${_application_file_path}" ]; then
-  #   return
-  # fi
-
   if ! grep -qw "${_module_name}.Runtime.Application," "${_mix_file_path}" 2&> /dev/null; then
     sed -i -e "s/${_module_name}.Application,/${_module_name}.Runtime.Application,/" "${_mix_file_path}"
   fi
 
   if ! grep -qw "${_module_name}.Runtime.Application," "${_application_file_path}" 2&> /dev/null; then
-    sed -i -e "s/${_module_name}.Application,/${_module_name}.Runtime.Application,/" "${_application_file_path}"
+    sed -i -e "s/defmodule ${_module_name}.Application do/defmodule ${_module_name}.Runtime.Application do/" "${_application_file_path}"
   fi
 
   local _line="{ DynamicSupervisor, strategy: :one_for_one, name: ${_module_name}.${_resource_capitalized}DynamicSupervisor }"
@@ -261,10 +267,7 @@ _Add_Runtime_Apllication() {
   fi
 
   if ! grep -qw "def start_${_resource_lowercase}_server()" "${_application_file_path}" 2&> /dev/null; then
-    # sed -i -e "s/${_module_name}.Application,/${_module_name}.Runtime.Application,/" "${_application_file_path}"
-
-    local _file=$(awk 'NR>1 && /./ { print buf; buf=rs=""} { buf=(buf rs $0); rs=RS }' "${_application_file_path}")
-    echo "${_file}" > "${_application_file_path}"
+    Remove_Last_Non_Empty_Line "${_application_file_path}"
 
 cat << EOF >> "${_application_file_path}"
 
@@ -278,9 +281,49 @@ EOF
   fi
 }
 
+
+# defmodule OnlineShop.Runtime.ProductServer do
+#
+#   use GenServer
+#
+#   # @type t :: pid()
+#
+#   @idle_timeout_milleseconds 1 * 60 * 60 * 1000 # 1 hour
+#
+#   ### Runs in the Client Process
+#
+#   def start_link(_args) do
+#     GenServer.start_link(__MODULE__, nil)
+#   end
+#
+#
+#   ### Runs in this Server Process
+#
+#   def init(initial_state \\ %{}) do
+#     watcher = Watchdog.start(@idle_timeout_milleseconds)
+#     { :ok, {initial_state, watcher} }
+#   end
+#
+#   def handle_call({:fetch_product, uuid}, _from, {state, watcher}) do
+#     Watchdog.im_alive(watcher)
+#     result = OnlineShop.ProductPrivateApi.fetch_product(uuid)
+#     { :reply, result, {state, watcher} }
+#   end
+#
+#   def handle_call({:add_product, uuid}, _from, {state, watcher}) do
+#     Watchdog.im_alive(watcher)
+#     result = OnlineShop.ProductPrivateApi.add_product(uuid)
+#     { :reply, result, {state, watcher} }
+#   end
+#
+# end
 _Add_Runtime_Server() {
 
-local server_file="${_lib_path}/runtime/${_resource_lowercase}_server.ex"
+  local server_file="${_lib_path}/runtime/${_resource_lowercase}_server.ex"
+
+  if [ -f "${server_file}" ]; then
+    return
+  fi
 
 cat <<EOF > "${server_file}"
 defmodule ${_module_name}.Runtime.${_resource_capitalized}Server do
@@ -311,9 +354,9 @@ for action in "${_actions[@]}"; do
     local _action_capitalised="${action^}"
     local _action_lowercase="${action,,}"
 cat <<EOF >> "${server_file}"
-  def handle_call({:${_action_lowercase}_${_resource_lowercase}, uuid}, _from, {state, watcher}) do
+  def handle_call({:${_action_lowercase}_${_resource_lowercase}, attrs}, _from, {state, watcher}) do
     Watchdog.im_alive(watcher)
-    result = ${_module_name}.${_resource_capitalized}PrivateApi.${_action_lowercase}_${_resource_lowercase}(uuid)
+    result = ${_module_name}.${_resource_capitalized}PrivateApi.${_action_lowercase}_${_resource_lowercase}(attrs)
     { :reply, result, {state, watcher} }
   end
 
@@ -323,6 +366,14 @@ done
   echo "end" >> "${server_file}"
 }
 
+# defmodule OnlineShop.Resources.Product.Add.ProductAddContext do
+#
+#   def add_product(attrs) do
+#     # your logic goes here...
+#     attrs
+#   end
+#
+# end
 _Add_Resource() {
 
   local resources_path="${_lib_path}/resources"
@@ -336,6 +387,10 @@ _Add_Resource() {
     mkdir -p "${_resource_path}/${_action_lowercase}"
 
     local context_file="${_resource_path}/${_action_lowercase}/${_resource_lowercase}_context.ex"
+
+    if [ -f "${context_file}" ]; then
+      continue
+    fi
 
     local _line="defmodule ${_module_name}.Resources.${_resource_capitalized}.${_action_capitalised}.${_resource_capitalized}${_action_capitalised}Context do"
 
@@ -365,6 +420,7 @@ Main() {
       --add-architecture )
           shift 1
           Add_Archictecture "${@}"
+          exit $?
         ;;
     esac
   done
