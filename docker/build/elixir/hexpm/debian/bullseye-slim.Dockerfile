@@ -94,6 +94,8 @@ USER "${CONTAINER_USER_NAME}"
 
 RUN mkdir -p ~/.config ~/.local ~/.cache && ls -al ~
 
+RUN mix local.hex --force
+
 WORKDIR "${WORKSPACE_PATH}"
 
 CMD ["zsh"]
