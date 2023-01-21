@@ -181,6 +181,12 @@ Is_App_With_Database()
   # EXECUTION
   ############################################################################
 
+    # For SQLITE we don't need to start a docker container or fix the
+    # configuration, therefore we ignore its existence.
+    if [ -d '.sqlite3' ]; then
+      return 1
+    fi
+
     Print_Text_With_Label "Config file Path" "${config_file}" "3"
 
     # Converts `my_APP_NAME` to `myappname` do that we can use a grep case
