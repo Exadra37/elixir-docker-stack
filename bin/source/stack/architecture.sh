@@ -135,6 +135,35 @@ EOF
   printf "end\n" >> "${_api_file_path}"
 }
 
+_Add_Resource_Private_API() {
+
+  local _api_file_path="${_lib_path}/${_resource_lowercase}_private_api.ex"
+
+  rm -f "${_lib_path}/${_app_name}.ex"
+
+  ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
+cat <<EOF > "${_api_file_path}"
+defmodule ${_module_name}.${_resource_capitalized}PrivateApi do
+
+EOF
+
+  for action in "${_actions[@]}"; do
+    local _action_capitalised="${action^}"
+    local _action_lowercase="${action,,}"
+
+### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
+cat <<EOF >> "${_api_file_path}"
+  def ${_action_lowercase}_${_resource_lowercase}(pid, attrs) do
+     ${_module_name}.Resources.${_resource_capitalized}${_action_capitalised}Context.${_action_lowercase}_${_resource_lowercase}(attrs)
+  end
+
+EOF
+
+  done
+
+  printf "end\n" >> "${_api_file_path}"
+}
+
 # defmodule OnlineShop.ProductPrivateApi do
 #
 #   alias OnlineShop.Resources.Product
@@ -144,37 +173,37 @@ EOF
 #   def add_product(attrs), do: Product.Add.ProductAddContext.add_product(attrs)
 #
 # end
-_Add_Resource_Private_API() {
-  local _private_api_file_path="${_lib_path}/${_resource_lowercase}_private_api.ex"
+# _Add_Resource_Private_API() {
+#   local _private_api_file_path="${_lib_path}/${_resource_lowercase}_private_api.ex"
 
-  if [ ! -f "${_private_api_file_path}" ]; then
-    ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
-    printf "defmodule ${_module_name}.${_resource_capitalized}PrivateApi do" > "${_private_api_file_path}"
-  fi
+#   if [ ! -f "${_private_api_file_path}" ]; then
+#     ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
+#     printf "defmodule ${_module_name}.${_resource_capitalized}PrivateApi do" > "${_private_api_file_path}"
+#   fi
 
-  local line="alias ${_module_name}.Resources.${_resource_capitalized}"
+#   local line="alias ${_module_name}.Resources.${_resource_capitalized}"
 
-  if ! grep -qw "${line}" "${_private_api_file_path}" 2&> /dev/null; then
-    printf "\n  ${line}\n\n"
-  fi
+#   if ! grep -qw "${line}" "${_private_api_file_path}" 2&> /dev/null; then
+#     printf "\n  ${line}\n\n" >> "${_private_api_file_path}"
+#   fi
 
-  Remove_Last_Non_Empty_Line "${_private_api_file_path}"
+#   Remove_Last_Non_Empty_Line "${_private_api_file_path}"
 
-  for action in "${_actions[@]}"; do
-    local _action_capitalised="${action^}"
-    local _action_lowercase="${action,,}"
+#   for action in "${_actions[@]}"; do
+#     local _action_capitalised="${action^}"
+#     local _action_lowercase="${action,,}"
 
-    ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
-    # def fetch_product(atts), do: OnlineShop.Resources.Product.Fetch.ProductContext.fetch_product(atts)
-    local line="def ${_action_lowercase}_${_resource_lowercase}(attrs), do: ${_resource_capitalized}.${_action_capitalised}.${_resource_capitalized}${_action_capitalised}Context.${_action_lowercase}_${_resource_lowercase}(attrs)"
+#     ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
+#     # def fetch_product(attrs), do: ProductContext.fetch_product(atts)
+#     local line="def ${_action_lowercase}_${_resource_lowercase}(attrs), do: ${_resource_capitalized}${_action_capitalised}Context.${_action_lowercase}_${_resource_lowercase}(attrs)"
 
-    if ! grep -qw "${line}" "${_private_api_file_path}" 2&> /dev/null; then
-      printf "\n  ${line}\n" >> "${_private_api_file_path}"
-    fi
-  done
+#     if ! grep -qw "${line}" "${_private_api_file_path}" 2&> /dev/null; then
+#       printf "\n  ${line}\n" >> "${_private_api_file_path}"
+#     fi
+#   done
 
-  printf "\nend\n" >> "${_private_api_file_path}"
-}
+#   printf "\nend\n" >> "${_private_api_file_path}"
+# }
 
 # defmodule Watchdog do
 #
@@ -405,7 +434,7 @@ _Add_Resource() {
       continue
     fi
 
-    local _line="defmodule ${_module_name}.Resources.${_resource_capitalized}.${_action_capitalised}.${_resource_capitalized}${_action_capitalised}Context do"
+    local _line="defmodule ${_module_name}.Resources.${_resource_capitalized}${_action_capitalised}Context do"
 
     if ! grep -qw "${_line}" "${context_file}" 2&> /dev/null; then
       printf "${_line}\n\n" > "${context_file}"
