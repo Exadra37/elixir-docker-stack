@@ -21,11 +21,19 @@ Add_Archictecture() {
     # from foo:fetch,add we get: foo
     local _resource=${_command%%:*}
 
+    if ! grep -q "/" <<< "${_resource}"; then
+      printf "\n---> ERROR: Missing the plural for the resource, e.g. --resource product|products:fetch,add\n\n"
+      exit 1
+    fi
+
+    local _resource_singular=${_command%%/*}
+    local _resource_plural=${_command##*/}
+
     # from foo:fetch,add we get: fetch,add
     local _actions_string=${_command##*:}
 
-    if grep -q "_" <<< "${_resource}"; then
-      IFS='_' read -r -a _parts <<< "${_resource}"
+    if grep -q "_" <<< "${_resource_singular}"; then
+      IFS='_' read -r -a _parts <<< "${_resource_singular}"
 
       local _resource_capitalized=
 
@@ -37,13 +45,13 @@ Add_Archictecture() {
 
       # local _resource_capitalized="${_resource^}"
       # DOESN'T WORK ON FUCKING MACs
-      local _resource_capitalized="$(echo ${_resource} | awk '{$1=toupper(substr($1,0,1))substr($1,2)}1')"
+      local _resource_capitalized="$(echo ${_resource_singular} | awk '{$1=toupper(substr($1,0,1))substr($1,2)}1')"
     fi
 
 
     # DOESN'T WORK ON FUCKING MACs
     # local _resource_lowercase="${_resource,,}"
-    local _resource_lowercase="$(echo ${_resource} | awk '{$1=tolower($1)}1')"
+    local _resource_lowercase="$(echo ${_resource_singular} | awk '{$1=tolower($1)}1')"
 
     local _mix_file_path="${_app_path}/mix.exs"
 
