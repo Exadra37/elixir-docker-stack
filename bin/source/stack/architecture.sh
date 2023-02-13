@@ -16,7 +16,7 @@ Add_Archictecture() {
 
   IFS=' ' read -r -a _resources <<< "${@}"
 
-  for _command in ${_resources[@]}; do
+  for _command in "${_resources[@]}"; do
 
     # from foo:fetch,add we get: foo
     local _resource=${_command%%:*}
@@ -24,9 +24,22 @@ Add_Archictecture() {
     # from foo:fetch,add we get: fetch,add
     local _actions_string=${_command##*:}
 
-    # local _resource_capitalized="${_resource^}"
-    # DOESN'T WORK ON FUCKING MACs
-    local _resource_capitalized="$(echo ${_resource} | awk '{$1=toupper(substr($1,0,1))substr($1,2)}1')"
+    if grep -q "_" <<< "${_resource}"; then
+      IFS='_' read -r -a _parts <<< "${_resource}"
+
+      local _resource_capitalized=
+
+      for _part in "${_parts[@]}"; do
+        local _capitalized="$(echo ${_part} | awk '{$1=toupper(substr($1,0,1))substr($1,2)}1')"
+        _resource_capitalized="${_resource_capitalized}${_capitalized}"
+      done
+    else
+
+      # local _resource_capitalized="${_resource^}"
+      # DOESN'T WORK ON FUCKING MACs
+      local _resource_capitalized="$(echo ${_resource} | awk '{$1=toupper(substr($1,0,1))substr($1,2)}1')"
+    fi
+
 
     # DOESN'T WORK ON FUCKING MACs
     # local _resource_lowercase="${_resource,,}"

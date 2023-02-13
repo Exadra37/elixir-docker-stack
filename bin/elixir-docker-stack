@@ -473,10 +473,11 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
             shift 2
           ;;
 
-          --resources )
-            Print_Text_With_Label "OPTION" "--resources" "4"
+          --resource )
+            Print_Text_With_Label "OPTION" "--resource" "4"
 
-            RESOURCES="${2? Missing resources to create e.g. categories:fetch,add product:fetch,add,modify,remove}"
+            RESOURCE="${2? Missing resources to create e.g. categories:fetch,add,modify,remove}"
+            RESOURCES="${RESOURCES} ${RESOURCE}"
 
             shift 2
           ;;
