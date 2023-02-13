@@ -77,23 +77,29 @@ Add_Archictecture() {
   done
 }
 
-# defmodule OnlineShop.ProductApi do
-#
-#   alias OnlineShop.Runtime.ProductServer
+# defmodule ApiBaas.AppUsersApi do
 #
 #   @timeout 5000
 #
-#   def new_product_server() do
-#     {:ok, pid} = OnlineShop.Runtime.Application.start_product_server()
+#   def new_app_users_server() do
+#     {:ok, pid} = ApiBaas.Runtime.Application.start_app_users_server()
 #     pid
 #   end
 #
-#   def fetch_product(pid, attrs) do
-#     GenServer.call(pid, {:fetch_product, attrs}, @timeout)
+#   def fetch_app_users(pid, attrs) do
+#     GenServer.call(pid, {:fetch_app_users, attrs}, @timeout)
 #   end
 #
-#   def add_product(pid, attrs) do
-#     GenServer.call(pid, {:add_product, attrs}, @timeout)
+#   def add_app_users(pid, attrs) do
+#     GenServer.call(pid, {:add_app_users, attrs}, @timeout)
+#   end
+#
+#   def modify_app_users(pid, attrs) do
+#     GenServer.call(pid, {:modify_app_users, attrs}, @timeout)
+#   end
+#
+#   def remove_app_users(pid, attrs) do
+#     GenServer.call(pid, {:remove_app_users, attrs}, @timeout)
 #   end
 #
 # end
@@ -106,8 +112,6 @@ _Add_Resource_Public_API() {
   ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
 cat <<EOF > "${_api_file_path}"
 defmodule ${_module_name}.${_resource_capitalized}Api do
-
-  alias ${_module_name}.Runtime.${_resource_capitalized}Server
 
   @timeout 5000
 
@@ -135,6 +139,26 @@ EOF
   printf "end\n" >> "${_api_file_path}"
 }
 
+
+# defmodule ApiBaas.AppUsersPrivateApi do
+#
+#   def fetch_app_users(pid, attrs) do
+#      ApiBaas.Resources.AppUsersFetchContext.fetch_app_users(attrs)
+#   end
+#
+#   def add_app_users(pid, attrs) do
+#      ApiBaas.Resources.AppUsersAddContext.add_app_users(attrs)
+#   end
+#
+#   def modify_app_users(pid, attrs) do
+#      ApiBaas.Resources.AppUsersModifyContext.modify_app_users(attrs)
+#   end
+#
+#   def remove_app_users(pid, attrs) do
+#      ApiBaas.Resources.AppUsersRemoveContext.remove_app_users(attrs)
+#   end
+#
+# end
 _Add_Resource_Private_API() {
 
   local _api_file_path="${_lib_path}/${_resource_lowercase}_private_api.ex"
@@ -164,46 +188,6 @@ EOF
   printf "end\n" >> "${_api_file_path}"
 }
 
-# defmodule OnlineShop.ProductPrivateApi do
-#
-#   alias OnlineShop.Resources.Product
-#
-#   def fetch_product(attrs), do: Product.Fetch.ProductFetchContext.fetch_product(attrs)
-#
-#   def add_product(attrs), do: Product.Add.ProductAddContext.add_product(attrs)
-#
-# end
-# _Add_Resource_Private_API() {
-#   local _private_api_file_path="${_lib_path}/${_resource_lowercase}_private_api.ex"
-
-#   if [ ! -f "${_private_api_file_path}" ]; then
-#     ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
-#     printf "defmodule ${_module_name}.${_resource_capitalized}PrivateApi do" > "${_private_api_file_path}"
-#   fi
-
-#   local line="alias ${_module_name}.Resources.${_resource_capitalized}"
-
-#   if ! grep -qw "${line}" "${_private_api_file_path}" 2&> /dev/null; then
-#     printf "\n  ${line}\n\n" >> "${_private_api_file_path}"
-#   fi
-
-#   Remove_Last_Non_Empty_Line "${_private_api_file_path}"
-
-#   for action in "${_actions[@]}"; do
-#     local _action_capitalised="${action^}"
-#     local _action_lowercase="${action,,}"
-
-#     ### DO NOT TOUCH IDENTATION AND EMPTY LINES ###
-#     # def fetch_product(attrs), do: ProductContext.fetch_product(atts)
-#     local line="def ${_action_lowercase}_${_resource_lowercase}(attrs), do: ${_resource_capitalized}${_action_capitalised}Context.${_action_lowercase}_${_resource_lowercase}(attrs)"
-
-#     if ! grep -qw "${line}" "${_private_api_file_path}" 2&> /dev/null; then
-#       printf "\n  ${line}\n" >> "${_private_api_file_path}"
-#     fi
-#   done
-
-#   printf "\nend\n" >> "${_private_api_file_path}"
-# }
 
 # defmodule Watchdog do
 #
@@ -262,8 +246,7 @@ end
 EOF
 }
 
-# defmodule OnlineShop.Runtime.Application do
-#
+# defmodule ApiBaas.Runtime.Application do
 #   # See https://hexdocs.pm/elixir/Application.html
 #   # for more information on OTP Applications
 #   @moduledoc false
@@ -273,20 +256,26 @@ EOF
 #   @impl true
 #   def start(_type, _args) do
 #     children = [
-#       { DynamicSupervisor, strategy: :one_for_one, name: OnlineShop.ProductDynamicSupervisor },
+#       { DynamicSupervisor, strategy: :one_for_one, name: ApiBaas.AppsDynamicSupervisor },
 #
-#       # Starts a worker by calling: OnlineShop.Worker.start_link(arg)
-#       # {OnlineShop.Worker, arg}
+#       { DynamicSupervisor, strategy: :one_for_one, name: ApiBaas.AppUsersDynamicSupervisor },
+#
+#       # Starts a worker by calling: ApiBaas.Worker.start_link(arg)
+#       # {ApiBaas.Worker, arg}
 #     ]
 #
 #     # See https://hexdocs.pm/elixir/Supervisor.html
 #     # for other strategies and supported options
-#     opts = [strategy: :one_for_one, name: OnlineShop.Supervisor]
+#     opts = [strategy: :one_for_one, name: ApiBaas.Supervisor]
 #     Supervisor.start_link(children, opts)
 #   end
 #
-#   def start_product_server() do
-#     DynamicSupervisor.start_child(OnlineShop.ProductDynamicSupervisor, { OnlineShop.Runtime.ProductServer, nil })
+#   def start_app_users_server() do
+#     DynamicSupervisor.start_child(ApiBaas.AppUsersDynamicSupervisor, { ApiBaas.Runtime.AppUsersServer, nil })
+#   end
+#
+#   def start_apps_server() do
+#     DynamicSupervisor.start_child(ApiBaas.AppsDynamicSupervisor, { ApiBaas.Runtime.AppsServer, nil })
 #   end
 #
 # end
@@ -324,7 +313,7 @@ EOF
 }
 
 
-# defmodule OnlineShop.Runtime.ProductServer do
+# defmodule ApiBaas.Runtime.AppsServer do
 #
 #   use GenServer
 #
@@ -346,15 +335,27 @@ EOF
 #     { :ok, {initial_state, watcher} }
 #   end
 #
-#   def handle_call({:fetch_product, uuid}, _from, {state, watcher}) do
+#   def handle_call({:fetch_apps, attrs}, _from, {state, watcher}) do
 #     Watchdog.im_alive(watcher)
-#     result = OnlineShop.ProductPrivateApi.fetch_product(uuid)
+#     result = ApiBaas.AppsPrivateApi.fetch_apps(attrs)
 #     { :reply, result, {state, watcher} }
 #   end
 #
-#   def handle_call({:add_product, uuid}, _from, {state, watcher}) do
+#   def handle_call({:add_apps, attrs}, _from, {state, watcher}) do
 #     Watchdog.im_alive(watcher)
-#     result = OnlineShop.ProductPrivateApi.add_product(uuid)
+#     result = ApiBaas.AppsPrivateApi.add_apps(attrs)
+#     { :reply, result, {state, watcher} }
+#   end
+#
+#   def handle_call({:modify_apps, attrs}, _from, {state, watcher}) do
+#     Watchdog.im_alive(watcher)
+#     result = ApiBaas.AppsPrivateApi.modify_apps(attrs)
+#     { :reply, result, {state, watcher} }
+#   end
+#
+#   def handle_call({:remove_apps, attrs}, _from, {state, watcher}) do
+#     Watchdog.im_alive(watcher)
+#     result = ApiBaas.AppsPrivateApi.remove_apps(attrs)
 #     { :reply, result, {state, watcher} }
 #   end
 #
@@ -408,9 +409,9 @@ done
   echo "end" >> "${server_file}"
 }
 
-# defmodule OnlineShop.Resources.Product.Add.ProductAddContext do
+# defmodule ApiBaas.Resources.AppUsersAddContext do
 #
-#   def add_product(attrs) do
+#   def add_app_users(attrs) do
 #     # your logic goes here...
 #     attrs
 #   end
