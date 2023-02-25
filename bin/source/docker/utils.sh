@@ -94,7 +94,7 @@ Get_Container_Username_UID()
   # EXECUTION
   ############################################################################
 
-    echo -n $( ${SUDO_PREFIX} docker run --rm -it --user ${user_name} ${docker_image} sh -c 'echo -n $(id -u)' )
+    echo -n $( ${SUDO_PREFIX} docker run --rm -it --entrypoint "bash -c" --user ${user_name} ${docker_image} 'echo -n $(id -u)' )
 }
 
 Get_Docker_Image_Tag()

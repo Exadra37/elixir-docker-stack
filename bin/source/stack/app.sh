@@ -168,40 +168,92 @@ Is_App_With_Path_Dependencies()
     return 1
 }
 
-Is_App_With_Database()
+Is_App_With_Sqlite_Database()
 {
   ############################################################################
   # VARS
   ############################################################################
 
-    local config_file=${APP_PATH}/config/dev.exs
+    local mix_file=${APP_PATH}/mix.exs
 
 
   ############################################################################
   # EXECUTION
   ############################################################################
 
-    # For SQLITE we don't need to start a docker container or fix the
-    # configuration, therefore we ignore its existence.
-    if [ -d '.sqlite3' ]; then
-      return 1
-    fi
+    Print_Text_With_Label "Mix file Path" "${mix_file}" "3"
 
-    Print_Text_With_Label "Config file Path" "${config_file}" "3"
-
-    # Converts `my_APP_NAME` to `myappname` do that we can use a grep case
-    # insensitive search on the string `MyAppName.Repo`.
-    local repo_name="${APP_NAME//[^[:alnum:]]/}.Repo"
-    Print_Text_With_Label "Repository Name" "${repo_name}" "3"
-
-    grep -iq "${repo_name}," "${config_file}" 2&> /dev/null
+    grep -iq ":ecto_sqlite3" "${mix_file}" 2&> /dev/null
 
     return $?
 }
 
+Is_App_With_Postgres_Database()
+{
+  ############################################################################
+  # VARS
+  ############################################################################
+
+    local mix_file=${APP_PATH}/mix.exs
+
+
+  ############################################################################
+  # EXECUTION
+  ############################################################################
+
+    Print_Text_With_Label "Mix file Path" "${mix_file}" "3"
+
+    grep -iq ":postgrex" "${mix_file}" 2&> /dev/null
+
+    return $?
+}
+
+# Is_App_With_Database()
+# {
+#   ############################################################################
+#   # VARS
+#   ############################################################################
+
+#     local config_file=${APP_PATH}/config/dev.exs
+
+
+#   ############################################################################
+#   # EXECUTION
+#   ############################################################################
+
+#     # For SQLITE we don't need to start a docker container or fix the
+#     # configuration, therefore we ignore its existence.
+#     if [ -d '.sqlite3' ] || [ -d '.database/sqlite3' ]; then
+#       return 1
+#     fi
+
+#     Print_Text_With_Label "Config file Path" "${config_file}" "3"
+
+#     # Converts `my_APP_NAME` to `myappname` do that we can use a grep case
+#     # insensitive search on the string `MyAppName.Repo`.
+#     local repo_name="${APP_NAME//[^[:alnum:]]/}.Repo"
+#     Print_Text_With_Label "Repository Name" "${repo_name}" "3"
+
+#     grep -iq "${repo_name}," "${config_file}" 2&> /dev/null
+
+#     return $?
+# }
+
 Add_Database_If_Required()
 {
-  if Is_App_With_Database; then
+  if Is_App_With_Sqlite_Database; then
+
+    mkdir -p "${APP_PATH}"/.database/sqlite/dev
+
+    local database_name=${APP_NAME}_dev.db
+
+    Print_Text_With_Label "Sqlite3 database name" "${database_name}" "3"
+
+    # Fix the database hostname in the App configuration file.
+    sed -i -e "s/\"../${database_name}\"/\".database/sqlite/dev/${database_name}\"/g" ${APP_PATH}/config/dev.exs
+  fi
+
+  if Is_App_With_Postgres_Database; then
 
     # Pinning database defaults to be used each time we run the Elixir Docker Stack
     echo "EDS_DATABASE_IMAGE=${EDS_DATABASE_IMAGE}" >> "${APP_PATH}/${stack_defaults_file}"
@@ -353,7 +405,7 @@ Start_Or_Attach_To_App_Container()
         "${is_local_docker_image}"
     fi
 
-    if Is_App_With_Database; then
+    if Is_App_With_Postgres_Database; then
 
       Start_Or_Attach_To_Database_Container \
         "${EDS_DATABASE_IMAGE}" \
@@ -425,11 +477,13 @@ Start_Or_Attach_To_App_Container()
 
     Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
 
-    mkdir -p "${APP_HOST_DIR}"/.local/mix
-
     # Raises an Erlang error when starting the iex session with `iex --name user@example.com`.
     # It works if we start the iex session with the `--cookie mycookie` flag.
     # --volume "${_erlang_cookie_path}":/home/"${container_username}"/.erlang.cookie \
+    # --volume "${APP_HOST_DIR}"/.local/mix/archives:/home/"${container_username}"/.mix/archives \
+
+    # --volume "${APP_CONTAINER_NAME}_${image_tag}_var_lib_postgresql":/var/lib/postgresql \
+    # --volume "${APP_CONTAINER_NAME}_${image_tag}_var_log_postgresql":/var/log/postgresql \
 
     ${SUDO_PREFIX} docker run \
       --rm \
@@ -453,10 +507,9 @@ Start_Or_Attach_To_App_Container()
       --network "${APP_NETWORK}" \
       --workdir /home/"${container_username}/${APP_CONTAINER_RELATIVE_PATH}" \
       --volume "${iex_file}":/home/"${container_username}"/.iex.exs \
-      --volume "${APP_HOST_DIR}"/.local/mix/:/home/"${container_username}"/.cache/mix/ \
+      --volume "${APP_CONTAINER_NAME}_${image_tag}_mix_cache":/home/"${container_username}"/.cache/mix/ \
+      --volume "${APP_CONTAINER_NAME}_${image_tag}_mix_archive":/home/"${container_username}"/.mix/archives \
       --volume "${APP_HOST_DIR}":/home/"${container_username}"/workspace \
-      --volume "${APP_CONTAINER_NAME}_${image_tag}_var_lib_postgresql":/var/lib/postgresql \
-      --volume "${APP_CONTAINER_NAME}_${image_tag}_var_log_postgresql":/var/log/postgresql \
       --volume "${APP_CONTAINER_NAME}_${image_tag}_config_sublimetext_3":/home/"${container_username}"/.config/sublime-text-3 \
       --volume "/tmp/.X11-unix":"/tmp/.X11-unix":ro \
       --volume "${xauth}":"${xauth}":ro \
