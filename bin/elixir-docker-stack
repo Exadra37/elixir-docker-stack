@@ -212,9 +212,9 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
 
       local APP_USER_NAME=developer
 
-      local APP_CONTAINER_NAME="${APP_NAME}_app"
+      local APP_CONTAINER_NAME="${DOCKER_APP_NAME}_app"
 
-      local APP_NETWORK="${APP_NAME}"
+      local APP_NETWORK="${DOCKER_APP_NAME}"
 
       local APP_NODE_NAME=""
 
@@ -591,7 +591,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
             Print_Text_With_Label "COMMAND" "new-database" "4"
 
             shift 1
-            local database_name="${1:-${APP_NAME}_dev}"
+            local database_name="${1:-${DOCKER_APP_NAME}_dev}"
 
             if [ "$#" -ge 1 ]; then
               shift 1
@@ -630,7 +630,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
 
             Start_Observer_Container \
               "${HOST_SETUP_PATH}" \
-              "${APP_NAME}" \
+              "${DOCKER_APP_NAME}" \
               "${APP_NETWORK}" \
               "${APP_CONTAINER_NAME}" \
               "${ERLANG_COOKIE}" \
@@ -678,13 +678,13 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
             # The same APP_NAME will be used when running commands inside the
             #  `/home/user/acme/hello`, and it's inferred by calling on the
             #  top of this script when calling `Get_Last_Two_Segments`.
-            local APP_NAME="${APP_FOLDER_NAME}_${APP_NAME}"
+            local APP_NAME="${APP_FOLDER_NAME}_${DOCKER_APP_NAME}"
 
             # Needs to be the name of the app, not of the current folder.
             local APP_FOLDER_NAME="${2}"
             local APP_FOLDER_NAME=${APP_FOLDER_NAME//./}
 
-            local APP_NETWORK="${APP_NAME}"
+            local APP_NETWORK="${DOCKER_APP_NAME}"
 
             local APP_PATH="${APP_PATH}/${APP_FOLDER_NAME}"
 
@@ -798,7 +798,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
             # Observer from another docker container in the same docker network.
             # The run command will execute inside the container:
             #   $ elixir --name video-hup_app@172.0.0.2 --cookie some-long-super-secret  -S mix phx.server"
-            local app_container_command="elixir-server ${APP_NAME} ${ERLANG_COOKIE} mix ${EDS_PHOENIX_COMMAND}"
+            local app_container_command="elixir-server ${DOCKER_APP_NAME} ${ERLANG_COOKIE} mix ${EDS_PHOENIX_COMMAND}"
 
             break
           ;;

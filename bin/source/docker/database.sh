@@ -72,7 +72,7 @@ Build_Database_Container_Name()
   # EXECUTION
   ############################################################################
 
-    echo -n "${APP_NAME}_${database_type}_db"
+    echo -n "${DOCKER_APP_NAME}_${database_type}_db"
 }
 
 Attach_To_Database_Container()
@@ -179,7 +179,7 @@ Start_Or_Attach_To_Database_Container()
     ${SUDO_PREFIX} docker run \
       "${background_mode}" \
       --env POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}" \
-      --hostname "${APP_NAME}_db" \
+      --hostname "${DOCKER_APP_NAME}_db" \
       --user "${database_user}" \
       --name "${database_container_name}" \
       --network "${APP_NETWORK}" \

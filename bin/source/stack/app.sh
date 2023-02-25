@@ -245,7 +245,7 @@ Add_Database_If_Required()
 
     mkdir -p "${APP_PATH}"/.database/sqlite/dev
 
-    local database_name=${APP_NAME}_dev.db
+    local database_name=${DOCKER_APP_NAME}_dev.db
 
     Print_Text_With_Label "Sqlite3 database name" "${database_name}" "3"
 
@@ -300,7 +300,7 @@ Attach_To_App_Container()
 
     Print_Text_With_Label "BACKGROUND MODE" "${background_mode}" "3"
 
-    APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${APP_CONTAINER_NAME} )"
+    APP_NODE_NAME="${DOCKER_APP_NAME}@$( Get_Container_Ip_Address ${APP_CONTAINER_NAME} )"
 
     ${SUDO_PREFIX} docker exec \
       --user ${container_username} \
@@ -392,7 +392,7 @@ Start_Or_Attach_To_App_Container()
 
       Print_Text_With_Label "DOCKER IMAGE" "${docker_image}" "0"
 
-      Print_Text_With_Label "WARNING" "Missing docker image for >>> ${APP_NAME} <<< APP. Please wait until we build the image." "1"
+      Print_Text_With_Label "WARNING" "Missing docker image for >>> ${DOCKER_APP_NAME} <<< APP. Please wait until we build the image." "1"
 
       Build_Docker_Stack \
         "${stack_name}" \
@@ -502,7 +502,7 @@ Start_Or_Attach_To_App_Container()
       --volume $SSH_AUTH_SOCK:/ssh-agent:ro \
       --volume ~/.ssh/:/home/developer/.ssh:ro \
       --name "${APP_CONTAINER_NAME}" \
-      --hostname "${APP_NAME}" \
+      --hostname "${DOCKER_APP_NAME}" \
       --user "${container_username}" \
       --network "${APP_NETWORK}" \
       --workdir /home/"${container_username}/${APP_CONTAINER_RELATIVE_PATH}" \

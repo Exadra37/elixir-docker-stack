@@ -32,7 +32,7 @@ Start_Observer_Container()
 
     Print_Text_With_Label "HOST SETUP DIR" "${HOST_SETUP_PATH}" "3"
 
-    Print_Text_With_Label "APP NAME" "${APP_NAME}" "3"
+    Print_Text_With_Label "APP NAME" "${DOCKER_APP_NAME}" "3"
 
     Print_Text_With_Label "APP NETWORK" "${APP_NETWORK}" "3"
 
@@ -51,20 +51,20 @@ Start_Observer_Container()
 
     case "${1:-}" in
       "htop" )
-        local observer_command="observer-cli ${APP_NAME} ${app_ip_address} ${erlang_cookie}"
-        local observer_container_name="${APP_NAME}_observer-htop"
+        local observer_command="observer-cli ${DOCKER_APP_NAME} ${app_ip_address} ${erlang_cookie}"
+        local observer_container_name="${DOCKER_APP_NAME}_observer-htop"
         shift 1
         ;;
 
       "shell" )
         local observer_command="zsh"
-        local observer_container_name="${APP_NAME}_observer-shell"
+        local observer_container_name="${DOCKER_APP_NAME}_observer-shell"
         shift 1
         ;;
 
       "" )
-        local observer_command="observer ${APP_NAME} ${app_ip_address} ${erlang_cookie}"
-        local observer_container_name="${APP_NAME}_observer"
+        local observer_command="observer ${DOCKER_APP_NAME} ${app_ip_address} ${erlang_cookie}"
+        local observer_container_name="${DOCKER_APP_NAME}_observer"
         ;;
 
       * )
