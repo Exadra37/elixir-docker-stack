@@ -76,13 +76,13 @@ Set_App_Global_Paths()
 
     if Is_Umbrella_App "${PWD}/../.."; then
       APP_HOST_DIR="${PWD}/../.."
-      APP_CONTAINER_RELATIVE_PATH=workspace/apps/"${APP_FOLDER_NAME}"
+      APP_CONTAINER_RELATIVE_PATH=workspace/apps/"${APP_NAME}"
       return
     fi
 
     if Is_App_With_Path_Dependencies "${PWD}"; then
       APP_HOST_DIR="${PWD}/.."
-      APP_CONTAINER_RELATIVE_PATH=workspace/"${APP_FOLDER_NAME}"
+      APP_CONTAINER_RELATIVE_PATH=workspace/"${APP_NAME}"
       return
     fi
 }
@@ -95,7 +95,7 @@ Is_Phoenix_App()
   # INPUT
   ############################################################################
 
-    local APP_FOLDER_NAME="${1? Missing App name to check if is a Phoenix app !!!}"
+    local APP_NAME="${1? Missing App name to check if is a Phoenix app !!!}"
 
 
   ############################################################################
@@ -107,8 +107,8 @@ Is_Phoenix_App()
       return $?
     fi
 
-    if [ -f "./apps/${APP_FOLDER_NAME}"/mix.exs ]; then
-      grep -qw ":phoenix," "./apps/${APP_FOLDER_NAME}"/mix.exs 2&> /dev/null
+    if [ -f "./apps/${APP_NAME}"/mix.exs ]; then
+      grep -qw ":phoenix," "./apps/${APP_NAME}"/mix.exs 2&> /dev/null
       return $?
     fi
 
@@ -250,7 +250,7 @@ Add_Database_If_Required()
     Print_Text_With_Label "Sqlite3 database name" "${database_name}" "3"
 
     # Fix the database hostname in the App configuration file.
-    sed -i -e "s/\"../${database_name}\"/\".database/sqlite/dev/${database_name}\"/g" ${APP_PATH}/config/dev.exs
+    sed -i -e "s|\"../${database_name}\"|\".database/sqlite/dev/${database_name}\"|g" ${APP_PATH}/config/dev.exs
   fi
 
   if Is_App_With_Postgres_Database; then

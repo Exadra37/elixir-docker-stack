@@ -434,12 +434,12 @@ Build_Docker_Image()
 
           "bullseye" )
             # build_args="${build_args} --build-arg OS_TAG=bullseye-20221004"
-            build_args="${build_args} --build-arg OS_TAG=bullseye-20230202"
+            build_args="${build_args} --build-arg OS_TAG=bullseye-${EDS_HEXPM_OS_BUILD_DATE:-20230202}"
             ;;
 
           "bullseye-slim" )
             # build_args="${build_args} --build-arg OS_TAG=bullseye-20221004-slim"
-            build_args="${build_args} --build-arg OS_TAG=bullseye-20230202-slim"
+            build_args="${build_args} --build-arg OS_TAG=bullseye-${EDS_HEXPM_OS_BUILD_DATE:-20230202}-slim"
             ;;
 
           "buster" )

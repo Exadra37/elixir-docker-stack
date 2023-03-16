@@ -212,9 +212,18 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
 
       local APP_USER_NAME=developer
 
-      local APP_CONTAINER_NAME="${DOCKER_APP_NAME}_app"
+      # Given that we are creating the new Phoenix app `hello` from
+      #  `/home/user/acme` we will have an `APP_NAME=acme_hello`.
+      # The same APP_NAME will be used when running commands inside the
+      #  `/home/user/acme/hello`, and it's inferred by calling on the
+      #  top of this script when calling `Get_Last_Two_Segments`.
+      local DOCKER_APP_NAME="${APP_FOLDER_NAME}_${APP_NAME}"
 
       local APP_NETWORK="${DOCKER_APP_NAME}"
+
+      local APP_CONTAINER_NAME="${APP_NAME}_app"
+
+      # local APP_NETWORK="${APP_NAME}"
 
       local APP_NODE_NAME=""
 
@@ -229,6 +238,8 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
       local SUDO_PREFIX=$(Sudo_Prefix)
 
       local VERBOSE_LEVEL=0
+
+
 
 
     ############################################################################
@@ -671,22 +682,21 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
 
             # Remove_Docker_Network "${APP_NETWORK}"
 
-            local APP_NAME="${2? Missing path to create the new app!!!}"
+            local APP_NAME="${2? Missing the new app aname, e.g Shop}"
+
+            # From a name like .Blog we get Blog
+            local APP_NAME=${APP_NAME//./}
 
             # Given that we are creating the new Phoenix app `hello` from
             #  `/home/user/acme` we will have an `APP_NAME=acme_hello`.
             # The same APP_NAME will be used when running commands inside the
             #  `/home/user/acme/hello`, and it's inferred by calling on the
             #  top of this script when calling `Get_Last_Two_Segments`.
-            local APP_NAME="${APP_FOLDER_NAME}_${DOCKER_APP_NAME}"
-
-            # Needs to be the name of the app, not of the current folder.
-            local APP_FOLDER_NAME="${2}"
-            local APP_FOLDER_NAME=${APP_FOLDER_NAME//./}
+            local DOCKER_APP_NAME="${APP_FOLDER_NAME}_${APP_NAME}"
 
             local APP_NETWORK="${DOCKER_APP_NAME}"
 
-            local APP_PATH="${APP_PATH}/${APP_FOLDER_NAME}"
+            local APP_PATH="${APP_PATH}/${APP_NAME}"
 
             # Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
             # sudo docker network ls
