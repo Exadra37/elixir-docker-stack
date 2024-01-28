@@ -8,17 +8,18 @@ ARG NODE_VERSION=16
 
 USER root
 
-RUN apt update && \
-  apt -y upgrade && \
-  apt -y install ssh && \
+RUN apt update
+RUN apt -y upgrade
 
-  "${DOCKER_BUILD}"/scripts/nodejs/install.sh "${NODE_VERSION}" && \
+RUN apt -y install --no-install-recommends ssh
 
-  find /usr -type d -name doc | xargs rm -rf && \
+RUN "${DOCKER_BUILD}"/scripts/nodejs/install.sh "${NODE_VERSION}"
 
-  apt -y auto-remove && \
-  apt clean && \
-  rm -rf /var/lib/apt/lists/*
+RUN find /usr -type d -name doc | xargs rm -rf
+
+RUN apt -y auto-remove && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*
 
 USER "${CONTAINER_USER_NAME}"
 
