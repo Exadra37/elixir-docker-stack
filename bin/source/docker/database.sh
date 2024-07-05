@@ -72,7 +72,7 @@ Build_Database_Container_Name()
   # EXECUTION
   ############################################################################
 
-    echo -n "${APP_NAME}_${database_type}_db"
+    echo -n "${DOCKER_APP_NAME}_${database_type}_db"
 }
 
 Attach_To_Database_Container()
@@ -149,7 +149,9 @@ Start_Or_Attach_To_Database_Container()
 
       Print_Text_With_Label "CHECK POINT" "Fixing database data dir permissions!!!" "4"
 
-      local user_uid=$( Get_Container_Username_UID "${database_image}" "${database_user}" )
+      # local user_uid=$( Get_Container_Username_UID "${database_image}" "${database_user}" )
+      # local user_uid=70 # alpine
+      local user_uid=999 # debian
 
       Print_Text_With_Label "USER UID (${database_user})" "${user_uid}" "3"
 
@@ -168,15 +170,16 @@ Start_Or_Attach_To_Database_Container()
       return 0
     fi
 
+    Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
+
     Print_Text_With_Label "INVOKED COMMAND" "${databse_execute_command} ${args}" "2"
 
     # @TODO Add support to use POSTGRES_PASSWORD from .env file
     # --env POSTGRES_PASSWORD="${POSTGRES_PASSWORD? Set password for the Postgres root user in the .env file: POSTGRES_PASSWORD=your-root-password}" \
     ${SUDO_PREFIX} docker run \
-      --rm \
       "${background_mode}" \
       --env POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}" \
-      --hostname "${APP_NAME}_db" \
+      --hostname "${DOCKER_APP_NAME}_db" \
       --user "${database_user}" \
       --name "${database_container_name}" \
       --network "${APP_NETWORK}" \

@@ -19,6 +19,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/shell/utils/sudo.sh
 source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/app.sh
 source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/utils.sh
 source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
+source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
 
 
 ################################################################################
@@ -35,7 +36,9 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       Print_Text_With_Label "TRAPPING EXIT" "Removing docker network on exit, only if no containers are attached to it." "4"
 
-      Remove_Docker_Network_If_Not_Active "${APP_NETWORK}"
+      # Remove_Docker_Network_If_Not_Active "${APP_NETWORK}"
+
+      Remove_Docker_Network_If_Container_Is_Not_Running "${APP_NETWORK}" "${APP_CONTAINER_NAME}"
 
       exit ${exit_code}
   }
@@ -95,7 +98,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       local is_local_docker_image=false
 
-      local EDS_STACK_BUILD_SOURCE=git
+      local EDS_STACK_BUILD_SOURCE=hexpm
 
       local EDS_STACK_NAME=phoenix
 
@@ -103,11 +106,15 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       local EDS_OS_VERSION=stretch
 
-      local EDS_PHOENIX_VERSION=1.4.10
+      local EDS_PHOENIX_VERSION=1.6.2
 
-      local EDS_ELIXIR_VERSION=1.9.4
+      local EDS_ELIXIR_VERSION=1.12.3
 
-      local EDS_ERLANG_OTP_VERSION=22.1.6
+      local EDS_ERLANG_OTP_VERSION=24.1.2
+
+      local EDS_REBAR3_VERSION=3.17.0
+
+      local EDS_DOCSH_VERSION=0.7.2
 
       local background_mode="-it"
 
@@ -117,6 +124,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
       local EDS_APP_HTTPS_PORT=4001
       local EDS_CONTAINER_HTTPS_PORT=4001
 
+      local EDS_INTERNAL_IP_ADDRESS="{0, 0, 0, 0}"
 
       local env_file=".env"
 
@@ -136,6 +144,24 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       local EDS_APP_IP=127.0.0.1
 
+      local IS_TO_PUBLISH_UDP_PORTS="false"
+      local EDS_UDP_IP=0.0.0.0
+      local EDS_UDP_PORT=2052
+      local EDS_CONTAINER_UDP_PORT=2052
+
+      # from `/home/user/project/app/acme` we will get `app_acme`
+      # local APP_NAME=$(Get_Last_Two_Segments "${PWD}" "/" "_")
+      local APP_NAME=$(Get_Last_Segment "${PWD}" "/")
+
+      # from `.local_acme` we will get `local_acme`
+      local APP_NAME=${APP_NAME//./}
+
+      # from `.local/acme` we will get `.local`
+      local APP_FOLDER_NAME=${PWD##*/}
+
+      # from `.local` we will get `local`
+      local APP_FOLDER_NAME=${APP_FOLDER_NAME//./}
+
 
       # We can override any of the above variables in the .elixir-docker-stack-defaults
       # file in the home directory or from the root for the project we are
@@ -147,16 +173,24 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
         source ~/"${stack_defaults_file}"
       fi
 
-      # It will override any variable already declared the ~/.env.elixir-docker-stack-defaults.
+      # It will override any variable already declared the ~/.elixir-docker-stack-defaults.
       #
       # Bear in mind that some can be override if provided as an argument or option
       # to this bash script.
       if [ -f "./${stack_defaults_file}" ]; then
         source "./${stack_defaults_file}"
+      elif [ -f "./../${stack_defaults_file}" ]; then
+        source "./../${stack_defaults_file}"
+      elif [ -f "./../../${stack_defaults_file}" ]; then
+        source "./../../${stack_defaults_file}"
       fi
 
       if [ -f "./${stack_defaults_file}.local" ]; then
         source "./${stack_defaults_file}.local"
+      elif [ -f "./../${stack_defaults_file}.local" ]; then
+        source "./../${stack_defaults_file}.local"
+      elif [ -f "./../../${stack_defaults_file}.local" ]; then
+        source "./../../${stack_defaults_file}.local"
       fi
 
 
@@ -178,14 +212,18 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       local APP_USER_NAME=developer
 
-      # from `/home/user/project/app/acme` we will get `app_acme`
-      local APP_NAME=$(Get_Last_Two_Segments "${PWD}" "/" "_")      # from `.local_acme` we will get `local_acme`
-      local APP_NAME=${APP_NAME//./}
-      local APP_FOLDER_NAME=${PWD##*/}
+      # Given that we are creating the new Phoenix app `hello` from
+      #  `/home/user/acme` we will have an `APP_NAME=acme_hello`.
+      # The same APP_NAME will be used when running commands inside the
+      #  `/home/user/acme/hello`, and it's inferred by calling on the
+      #  top of this script when calling `Get_Last_Two_Segments`.
+      local DOCKER_APP_NAME="${APP_FOLDER_NAME}_${APP_NAME}"
+
+      local APP_NETWORK="${DOCKER_APP_NAME}"
 
       local APP_CONTAINER_NAME="${APP_NAME}_app"
 
-      local APP_NETWORK="${APP_NAME}_network"
+      # local APP_NETWORK="${APP_NAME}"
 
       local APP_NODE_NAME=""
 
@@ -200,6 +238,8 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
       local SUDO_PREFIX=$(Sudo_Prefix)
 
       local VERBOSE_LEVEL=0
+
+
 
 
     ############################################################################
@@ -226,14 +266,16 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
       local EDS_ELIXIR_VERSION=$( Map_Version_For_Docker_Tag ${EDS_ELIXIR_VERSION} ${EDS_STACK_NAME} ${EDS_STACK_BUILD_SOURCE} )
 
+      local IS_TO_PUBLISH_PORTS="false"
+
+      local RESOURCES=
+
 
     ############################################################################
     # PARSE INPUT / EXECUTION
     ############################################################################
 
       mkdir -p "${HOST_SETUP_PATH}"
-
-      Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
 
       #trap "Trap_Exit" SIGINT SIGKILL SIGTERM
       trap "Trap_Exit" EXIT
@@ -262,6 +304,8 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
             shift 1
 
+            Add_Database_If_Required
+
             Start_Or_Attach_To_Database_Container \
               "${EDS_DATABASE_IMAGE}" \
               "${EDS_DATABASE_USER}" \
@@ -279,7 +323,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
           -e | --env )
             Print_Text_With_Label "OPTION" "-e, --env" "4"
 
-            local CONTAINER_ENV="${CONTAINER_ENV} --env ${2? Missing env variable !!!}"
+            CONTAINER_ENV="${CONTAINER_ENV} --env ${2? Missing env variable !!!}"
             shift 2
           ;;
 
@@ -374,21 +418,78 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
             shift 2
           ;;
 
+          --name )
+
+            if [ ${app_container_command} == "iex" ]; then
+              # When we want to run locally two or more docker containers
+              # simulating nodes across different machines we need to start iex
+              # in separated containers, that will share the same docker network.
+              #
+              # So, if we start two iex sessions, one with iex --name user@example.com
+              # and another with iex --name user@exadra37.com, then each will be
+              # able to connect to the other, because docker will route example.com
+              # and exadra37.com through the shared docker network, and once the
+              # docker containers have the same names as the domains they will
+              # be the ones handling the connection, thus not trying to reach
+              # the real domains on the internet.
+
+              # from user@example.com we get example.com
+              APP_CONTAINER_NAME=$(Get_Last_Segment "${2}" "@")
+
+              # the docker network that containers started with iex --name must
+              # share in order for the nodes be able to connect to each other.
+              APP_NETWORK="elixir-docker-stack"
+            fi
+
+          ;;
+
           --no-cache )
             # not implemented yet
           ;;
 
-          -p | --publish )
-            Print_Text_With_Label "OPTION" "-p, --publish" "4"
+          -p | --port )
+            Print_Text_With_Label "OPTION" "-p, --port" "4"
+
+            IS_TO_PUBLISH_PORTS="true"
 
             local EDS_APP_HTTP_PORT=${2? Missing port to publish for the container, eg: 4800 !!!}
+            local EDS_CONTAINER_HTTP_PORT=${EDS_APP_HTTP_PORT}
+
             shift 2
           ;;
+
+          --port-https )
+              Print_Text_With_Label "OPTION" "--port-https" "4"
+
+              IS_TO_PUBLISH_PORTS="true"
+
+              local EDS_APP_HTTPS_PORT=${2? Missing port to publish for the container, eg: 4800 !!!}
+              local EDS_CONTAINER_HTTPS_PORT=${EDS_APP_HTTPS_PORT}
+
+              shift 2
+            ;;
 
           --pv | --phoenix-version )
             Print_Text_With_Label "OPTION" "--pv, --phoenix-version" "4"
 
             local EDS_PHOENIX_VERSION="${2? Missing Phoenix version!!!}"
+            shift 2
+          ;;
+
+          --osv | --os-version )
+            Print_Text_With_Label "OPTION" "--osv, --os-version" "4"
+
+            local EDS_OS_VERSION="${2? Missing OS Version, e.g. debian, slim, ubuntu, alpine}"
+
+            shift 2
+          ;;
+
+          --resource )
+            Print_Text_With_Label "OPTION" "--resource" "4"
+
+            RESOURCE="${2? Missing resources to create e.g. categories:fetch,add,modify,remove}"
+            RESOURCES="${RESOURCES} ${RESOURCE}"
+
             shift 2
           ;;
 
@@ -405,6 +506,22 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
             local container_username=${2? Missing user for container!!!}
             shift 2
+          ;;
+
+          --udp )
+            Print_Text_With_Label "OPTION" "--udp" "4"
+
+            IS_TO_PUBLISH_UDP_PORTS="true"
+
+            EDS_UDP_PORT="${2? Missing udp port, e.g. 2052}"
+            EDS_CONTAINER_UDP_PORT="${EDS_UDP_PORT}"
+            EDS_UDP_IP="${3:-127.0.0.1}"
+
+            shift 2
+
+            if [ "$#" -ge 1 ]; then
+              shift 1
+            fi
           ;;
 
           --verbose )
@@ -485,7 +602,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
             Print_Text_With_Label "COMMAND" "new-database" "4"
 
             shift 1
-            local database_name="${1:-${APP_NAME}_dev}"
+            local database_name="${1:-${DOCKER_APP_NAME}_dev}"
 
             if [ "$#" -ge 1 ]; then
               shift 1
@@ -524,7 +641,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
             Start_Observer_Container \
               "${HOST_SETUP_PATH}" \
-              "${APP_NAME}" \
+              "${DOCKER_APP_NAME}" \
               "${APP_NETWORK}" \
               "${APP_CONTAINER_NAME}" \
               "${ERLANG_COOKIE}" \
@@ -547,35 +664,43 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
             break
           ;;
 
-          new | phoenix.new | phx.new )
+          new | phoenix.new | phx.new )
             Print_Text_With_Label "COMMAND" "${1}" "4"
 
             # break parsing the input if --version option is given.
+            case "${1:-}" in
+              "new" )
+                EDS_STACK_NAME=elixir
+              ;;
+            esac
+
             case "${2:-}" in
               --version )
                 break
               ;;
             esac
 
-            Remove_Docker_Network "${APP_NETWORK}"
+            # Remove_Docker_Network "${APP_NETWORK}"
 
-            local APP_NAME="${2? Missing path to create the new app!!!}"
+            local APP_NAME="${2? Missing the new app aname, e.g Shop}"
+
+            # From a name like .Blog we get Blog
+            local APP_NAME=${APP_NAME//./}
 
             # Given that we are creating the new Phoenix app `hello` from
             #  `/home/user/acme` we will have an `APP_NAME=acme_hello`.
             # The same APP_NAME will be used when running commands inside the
             #  `/home/user/acme/hello`, and it's inferred by calling on the
             #  top of this script when calling `Get_Last_Two_Segments`.
-            local APP_NAME="${APP_FOLDER_NAME}_${APP_NAME}"
+            local DOCKER_APP_NAME="${APP_FOLDER_NAME}_${APP_NAME}"
 
-            # Nees to be the name of the app, not of the current folder.
-            local APP_FOLDER_NAME="${2}"
+            local APP_NETWORK="${DOCKER_APP_NAME}"
 
-            local APP_NETWORK="${APP_NAME}_network"
+            local APP_PATH="${APP_PATH}/${APP_NAME}"
 
-            local APP_PATH="${APP_PATH}/${APP_FOLDER_NAME}"
-
-            Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
+            # Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
+            # sudo docker network ls
+            # sleep 3
 
             if [ -z "${container_username}" ]; then
               local container_username="${APP_USER_NAME}"
@@ -618,24 +743,19 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
               ;;
             esac
 
-            if Is_App_With_Database; then
+            Add_Database_If_Required
 
-              # Pinning database defaults to be used each time we run the Elixir Docker Stack
-              echo "EDS_DATABASE_IMAGE=${EDS_DATABASE_IMAGE}" >> "${APP_PATH}/${stack_defaults_file}"
-              echo "EDS_DATABASE_USER=${EDS_DATABASE_USER}" >> "${APP_PATH}/${stack_defaults_file}"
-              echo "EDS_DATABASE_COMMAND=${EDS_DATABASE_COMMAND}" >> "${APP_PATH}/${stack_defaults_file}"
+            echo "EDS_REBAR3_VERSION=${EDS_REBAR3_VERSION:-3.20.0}" >> "${APP_PATH}/${stack_defaults_file}"
 
-              local database_container_name="$( Build_Database_Container_Name ${EDS_DATABASE_IMAGE} )"
-
-              # Fix the database hostname in the App configuration file.
-              sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_container_name}\"/g" ${APP_PATH}/config/dev.exs
-              sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_container_name}\"/g" ${APP_PATH}/config/test.exs
+            if [ -n "${RESOURCES}" ]; then
+              Add_Archictecture "${APP_PATH}" "${RESOURCES}"
             fi
 
             exit 0
           ;;
 
           phx.server | phoenix.server )
+            IS_TO_PUBLISH_PORTS="true"
             Print_Text_With_Label "APP LISTENING ON: " "${EDS_APP_IP}:${EDS_APP_HTTP_PORT}:${EDS_CONTAINER_HTTP_PORT}" "0"
           ;;
 
@@ -648,6 +768,8 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
 
           up )
             Print_Text_With_Label "COMMAND" "up" "4"
+
+            IS_TO_PUBLISH_PORTS="true"
 
             shift 1
 
@@ -686,7 +808,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
             # Observer from another docker container in the same docker network.
             # The run command will execute inside the container:
             #   $ elixir --name video-hup_app@172.0.0.2 --cookie some-long-super-secret  -S mix phx.server"
-            local app_container_command="elixir-server ${APP_NAME} ${ERLANG_COOKIE} mix ${EDS_PHOENIX_COMMAND}"
+            local app_container_command="elixir-server ${DOCKER_APP_NAME} ${ERLANG_COOKIE} mix ${EDS_PHOENIX_COMMAND}"
 
             break
           ;;
@@ -724,7 +846,8 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/observer.sh
         local container_username="${APP_USER_NAME}"
       fi
 
-      #Replace_Http_Port "${EDS_APP_HTTP_PORT}" "${APP_PATH}"
+      Replace_IP_Address "${EDS_INTERNAL_IP_ADDRESS}" "${APP_PATH}"
+      Replace_Http_Port "${EDS_APP_HTTP_PORT}" "${APP_PATH}"
 
       Start_Or_Attach_To_App_Container \
         "${EDS_STACK_NAME}" \

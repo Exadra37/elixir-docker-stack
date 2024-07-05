@@ -9,11 +9,11 @@ ARG ELIXIR_DOWNLOAD_URL=https://packages.erlang-solutions.com/erlang/elixir/FLAV
 USER root
 
 RUN apt update && \
-  apt -y upgrade && \
+  apt -y upgrade
 
-  su "${CONTAINER_USER_NAME}" -c "sh -c 'cp -r ${DOCKER_BUILD}/scripts/elixir/bin/* ${CONTAINER_BIN_PATH}'" && \
+RUN su "${HOST_USER_NAME}" -c "sh -c 'cp -r ${DOCKER_BUILD}/scripts/elixir/bin/* ${CONTAINER_BIN_PATH}'"
 
-  printf "\nELIXIR DOWNLOAD URL: ${ELIXIR_DOWNLOAD_URL}\n" && \
+RUN printf "\nELIXIR DOWNLOAD URL: ${ELIXIR_DOWNLOAD_URL}\n" && \
 
   curl -fsSL -o elixir.deb "${ELIXIR_DOWNLOAD_URL}" && \
   dpkg -i elixir.deb && \
@@ -23,7 +23,7 @@ RUN apt update && \
   apt clean && \
   rm -rf /var/lib/apt/lists/*
 
-USER "${CONTAINER_USER_NAME}"
+USER "${HOST_USER_NAME}"
 
 WORKDIR "${WORKSPACE_PATH}"
 

@@ -94,7 +94,7 @@ Get_Container_Username_UID()
   # EXECUTION
   ############################################################################
 
-    echo -n $( ${SUDO_PREFIX} docker run --rm -it --user ${user_name} ${docker_image} sh -c 'echo -n $(id -u)' )
+    echo -n $( ${SUDO_PREFIX} docker run --rm -it --entrypoint "bash -c" --user ${user_name} ${docker_image} 'echo -n $(id -u)' )
 }
 
 Get_Docker_Image_Tag()
@@ -220,7 +220,7 @@ Remove_Docker_Network_If_Container_Is_Not_Running()
   # EXECUTION
   ############################################################################
 
-    if ! Docker_Container_Is_Running "${container_name}"; then
-      Remove_Docker_Network "${network_name}"
-    fi
+    # if ! Docker_Container_Is_Running "${container_name}"; then
+    #   Remove_Docker_Network_If_Not_Active "${network_name}" &> /dev/null
+    # fi
 }

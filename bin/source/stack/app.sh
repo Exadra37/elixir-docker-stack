@@ -2,6 +2,35 @@
 
 set -eu
 
+Replace_IP_Address() {
+
+  Print_Text_With_Label "FUNCTION" "Replace_IP_Address" "4"
+
+  ############################################################################
+  # INPUT
+  ############################################################################
+
+    local ip_address="${1? Missing the http port for the Phoenix app !!!}"
+
+    local path_prefix="${2? Missing the path prefix for the project !!!}"
+
+
+  ############################################################################
+  # EXECUTION
+  ############################################################################
+
+    Print_Text_With_Label "ip_address: " "${ip_address}" "1"
+
+    # Fix the http port in the App configuration file.
+    if [ -f "${path_prefix}/config/dev.exs" ]; then
+      sed -i -e "s/ip: {127, 0, 0, 1}/ip: ${ip_address}/g" ${path_prefix}/config/dev.exs
+    fi
+
+    if [ -f "${path_prefix}/config/test.exs" ]; then
+      sed -i -e "s/ip: {127, 0, 0, 1}/ip: ${ip_address}/g" ${path_prefix}/config/test.exs
+    fi
+}
+
 Replace_Http_Port() {
 
   Print_Text_With_Label "FUNCTION" "Replace_Http_Port" "4"
@@ -19,11 +48,16 @@ Replace_Http_Port() {
   # EXECUTION
   ############################################################################
 
-    Print_Text_With_Label "HTTP_PORT: " "${http_port}" "0"
+    Print_Text_With_Label "HTTP_PORT: " "${http_port}" "1"
 
     # Fix the http port in the App configuration file.
-    sed -i -e "s/http: \[port: 4000\]/http: \[port: ${http_port}\]/g" ${path_prefix}/config/dev.exs
-    sed -i -e "s/http: \[port: 4000\]/http: \[port: ${http_port}\]/g" ${path_prefix}/config/test.exs
+    if [ -f "${path_prefix}/config/dev.exs" ]; then
+      sed -i -e "s/port: 4000/port: ${http_port}/g" ${path_prefix}/config/dev.exs
+    fi
+
+    if [ -f "${path_prefix}/config/test.exs" ]; then
+      sed -i -e "s/port: 4000/port: ${http_port}/g" ${path_prefix}/config/test.exs
+    fi
 }
 
 Set_App_Global_Paths()
@@ -42,13 +76,13 @@ Set_App_Global_Paths()
 
     if Is_Umbrella_App "${PWD}/../.."; then
       APP_HOST_DIR="${PWD}/../.."
-      APP_CONTAINER_RELATIVE_PATH=workspace/apps/"${APP_FOLDER_NAME}"
+      APP_CONTAINER_RELATIVE_PATH=workspace/apps/"${APP_NAME}"
       return
     fi
 
     if Is_App_With_Path_Dependencies "${PWD}"; then
       APP_HOST_DIR="${PWD}/.."
-      APP_CONTAINER_RELATIVE_PATH=workspace/"${APP_FOLDER_NAME}"
+      APP_CONTAINER_RELATIVE_PATH=workspace/"${APP_NAME}"
       return
     fi
 }
@@ -61,7 +95,7 @@ Is_Phoenix_App()
   # INPUT
   ############################################################################
 
-    local APP_FOLDER_NAME="${1? Missing App name to check if is a Phoenix app !!!}"
+    local APP_NAME="${1? Missing App name to check if is a Phoenix app !!!}"
 
 
   ############################################################################
@@ -73,8 +107,8 @@ Is_Phoenix_App()
       return $?
     fi
 
-    if [ -f "./apps/${APP_FOLDER_NAME}"/mix.exs ]; then
-      grep -qw ":phoenix," "./apps/${APP_FOLDER_NAME}"/mix.exs 2&> /dev/null
+    if [ -f "./apps/${APP_NAME}"/mix.exs ]; then
+      grep -qw ":phoenix," "./apps/${APP_NAME}"/mix.exs 2&> /dev/null
       return $?
     fi
 
@@ -134,29 +168,104 @@ Is_App_With_Path_Dependencies()
     return 1
 }
 
-Is_App_With_Database()
+Is_App_With_Sqlite_Database()
 {
   ############################################################################
   # VARS
   ############################################################################
 
-    local config_file=${APP_PATH}/config/dev.exs
+    local mix_file=${APP_PATH}/mix.exs
 
 
   ############################################################################
   # EXECUTION
   ############################################################################
 
-    Print_Text_With_Label "Config file Path" "${config_file}" "3"
+    Print_Text_With_Label "Mix file Path" "${mix_file}" "3"
 
-    # Converts `my_APP_FOLDER_NAME` to `myappname` do that we can use a grep case
-    # insensitive search on the string `MyAppName.Repo`.
-    local repo_name="${APP_FOLDER_NAME//[^[:alpha:]]/}.Repo"
-    Print_Text_With_Label "Repository Name" "${repo_name}" "3"
-
-    grep -iq "${repo_name}," "${config_file}" 2&> /dev/null
+    grep -iq ":ecto_sqlite3" "${mix_file}" 2&> /dev/null
 
     return $?
+}
+
+Is_App_With_Postgres_Database()
+{
+  ############################################################################
+  # VARS
+  ############################################################################
+
+    local mix_file=${APP_PATH}/mix.exs
+
+
+  ############################################################################
+  # EXECUTION
+  ############################################################################
+
+    Print_Text_With_Label "Mix file Path" "${mix_file}" "3"
+
+    grep -iq ":postgrex" "${mix_file}" 2&> /dev/null
+
+    return $?
+}
+
+# Is_App_With_Database()
+# {
+#   ############################################################################
+#   # VARS
+#   ############################################################################
+
+#     local config_file=${APP_PATH}/config/dev.exs
+
+
+#   ############################################################################
+#   # EXECUTION
+#   ############################################################################
+
+#     # For SQLITE we don't need to start a docker container or fix the
+#     # configuration, therefore we ignore its existence.
+#     if [ -d '.sqlite3' ] || [ -d '.database/sqlite3' ]; then
+#       return 1
+#     fi
+
+#     Print_Text_With_Label "Config file Path" "${config_file}" "3"
+
+#     # Converts `my_APP_NAME` to `myappname` do that we can use a grep case
+#     # insensitive search on the string `MyAppName.Repo`.
+#     local repo_name="${APP_NAME//[^[:alnum:]]/}.Repo"
+#     Print_Text_With_Label "Repository Name" "${repo_name}" "3"
+
+#     grep -iq "${repo_name}," "${config_file}" 2&> /dev/null
+
+#     return $?
+# }
+
+Add_Database_If_Required()
+{
+  if Is_App_With_Sqlite_Database; then
+
+    mkdir -p "${APP_PATH}"/.database/sqlite/dev
+
+    local database_name=${DOCKER_APP_NAME}_dev.db
+
+    Print_Text_With_Label "Sqlite3 database name" "${database_name}" "3"
+
+    # Fix the database hostname in the App configuration file.
+    sed -i -e "s|\"../${database_name}\"|\".database/sqlite/dev/${database_name}\"|g" ${APP_PATH}/config/dev.exs
+  fi
+
+  if Is_App_With_Postgres_Database; then
+
+    # Pinning database defaults to be used each time we run the Elixir Docker Stack
+    echo "EDS_DATABASE_IMAGE=${EDS_DATABASE_IMAGE}" >> "${APP_PATH}/${stack_defaults_file}"
+    echo "EDS_DATABASE_USER=${EDS_DATABASE_USER}" >> "${APP_PATH}/${stack_defaults_file}"
+    echo "EDS_DATABASE_COMMAND=${EDS_DATABASE_COMMAND}" >> "${APP_PATH}/${stack_defaults_file}"
+
+    local database_container_name="$( Build_Database_Container_Name ${EDS_DATABASE_IMAGE} )"
+
+    # Fix the database hostname in the App configuration file.
+    sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_container_name}\"/g" ${APP_PATH}/config/dev.exs
+    sed -i -e "s/hostname: \"localhost\"/hostname: \"${database_container_name}\"/g" ${APP_PATH}/config/test.exs
+  fi
 }
 
 
@@ -191,13 +300,17 @@ Attach_To_App_Container()
 
     Print_Text_With_Label "BACKGROUND MODE" "${background_mode}" "3"
 
-    APP_NODE_NAME="${APP_NAME}@$( Get_Container_Ip_Address ${APP_CONTAINER_NAME} )"
+    APP_NODE_NAME="${DOCKER_APP_NAME}@$( Get_Container_Ip_Address ${APP_CONTAINER_NAME} )"
 
     ${SUDO_PREFIX} docker exec \
       --user ${container_username} \
+      ${CONTAINER_ENV} \
       --env "MIX_ENV=${mix_env}" \
       --env "APP_NODE_NAME=${APP_NODE_NAME}" \
       --env "APP_NODE_COOKIE=${ERLANG_COOKIE}" \
+      --env "PORT=${EDS_CONTAINER_HTTP_PORT}" \
+      --env "APP_HTTP_PORT=${EDS_APP_HTTP_PORT}" \
+      --env "APP_HTTPS_PORT=${EDS_APP_HTTPS_PORT}" \
       ${background_mode} \
       ${APP_CONTAINER_NAME} \
       ${app_container_command} ${args}
@@ -279,7 +392,7 @@ Start_Or_Attach_To_App_Container()
 
       Print_Text_With_Label "DOCKER IMAGE" "${docker_image}" "0"
 
-      Print_Text_With_Label "WARNING" "Missing docker image for >>> ${APP_NAME} <<< APP. Please wait until we build the image." "1"
+      Print_Text_With_Label "WARNING" "Missing docker image for >>> ${DOCKER_APP_NAME} <<< APP. Please wait until we build the image." "1"
 
       Build_Docker_Stack \
         "${stack_name}" \
@@ -292,7 +405,7 @@ Start_Or_Attach_To_App_Container()
         "${is_local_docker_image}"
     fi
 
-    if Is_App_With_Database; then
+    if Is_App_With_Postgres_Database; then
 
       Start_Or_Attach_To_Database_Container \
         "${EDS_DATABASE_IMAGE}" \
@@ -327,13 +440,58 @@ Start_Or_Attach_To_App_Container()
         local env_file_option="--env-file ${env_file}"
     fi
 
+    local iex_file="${ELIXIR_DOCKER_STACK_INSTALL_DIR}/bin/.iex.exs"
+
+    if [ -f ~/.iex.exs ]; then
+      iex_file=~/.iex.exs
+    fi
+
+    local _publish_ports=""
+
+    if [ ${IS_TO_PUBLISH_PORTS} == "true" ]; then
+      _publish_ports="--publish ${EDS_APP_IP}:${EDS_APP_HTTP_PORT}:${EDS_CONTAINER_HTTP_PORT}"
+      _publish_ports="${_publish_ports} --publish ${EDS_APP_IP}:${EDS_APP_HTTPS_PORT}:${EDS_CONTAINER_HTTPS_PORT}"
+    fi
+
+    if [ ${IS_TO_PUBLISH_UDP_PORTS} == "true" ]; then
+      _publish_ports="${_publish_ports} --publish ${EDS_UDP_IP}:${EDS_UDP_PORT}:${EDS_CONTAINER_UDP_PORT}/udp"
+    fi
+
+    local _erlang_cookie_path=""
+
+    local _user="${HOME?The \$USER var is not set in the environment}"
+
+    if [ -f ~/.erlang.cookie ]; then
+      _erlang_cookie_path=/home/{_user}/.erlang.cookie
+    fi
+
+    if [ -f ./.erlang.cookie ]; then
+      _erlang_cookie_path="${PWD}"/.erlang.cookie
+    fi
+
+    if [ -z "${_erlang_cookie_path}" ]; then
+      local _cookie="$(Random_Cookie_String)"
+      echo "${_cookie}" > ~/.erlang.cookie
+      _erlang_cookie_path=/home/{_user}/.erlang.cookie
+    fi
+
+    Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
+
+    # Raises an Erlang error when starting the iex session with `iex --name user@example.com`.
+    # It works if we start the iex session with the `--cookie mycookie` flag.
+    # --volume "${_erlang_cookie_path}":/home/"${container_username}"/.erlang.cookie \
+    # --volume "${APP_HOST_DIR}"/.local/mix/archives:/home/"${container_username}"/.mix/archives \
+
+    # --volume "${APP_CONTAINER_NAME}_${image_tag}_var_lib_postgresql":/var/lib/postgresql \
+    # --volume "${APP_CONTAINER_NAME}_${image_tag}_var_log_postgresql":/var/log/postgresql \
+
     ${SUDO_PREFIX} docker run \
       --rm \
       ${background_mode} \
       ${env_file_option} \
       ${CONTAINER_ENV} \
-      --publish ${EDS_APP_IP}:${EDS_APP_HTTP_PORT}:${EDS_CONTAINER_HTTP_PORT} \
-      --publish ${EDS_APP_IP}:${EDS_APP_HTTPS_PORT}:${EDS_CONTAINER_HTTPS_PORT} \
+      ${_publish_ports} \
+      --env "PORT=${EDS_CONTAINER_HTTP_PORT}" \
       --env "APP_HTTP_PORT=${EDS_APP_HTTP_PORT}" \
       --env "APP_HTTPS_PORT=${EDS_APP_HTTPS_PORT}" \
       --env "APP_NODE_NAME=${APP_NODE_NAME}" \
@@ -344,13 +502,14 @@ Start_Or_Attach_To_App_Container()
       --volume $SSH_AUTH_SOCK:/ssh-agent:ro \
       --volume ~/.ssh/:/home/developer/.ssh:ro \
       --name "${APP_CONTAINER_NAME}" \
-      --hostname "${APP_NAME}" \
+      --hostname "${DOCKER_APP_NAME}" \
       --user "${container_username}" \
       --network "${APP_NETWORK}" \
       --workdir /home/"${container_username}/${APP_CONTAINER_RELATIVE_PATH}" \
+      --volume "${iex_file}":/home/"${container_username}"/.iex.exs \
+      --volume "${APP_CONTAINER_NAME}_${image_tag}_mix_cache":/home/"${container_username}"/.cache/mix/ \
+      --volume "${APP_CONTAINER_NAME}_${image_tag}_mix_archive":/home/"${container_username}"/.mix/archives \
       --volume "${APP_HOST_DIR}":/home/"${container_username}"/workspace \
-      --volume "${APP_CONTAINER_NAME}_${image_tag}_var_lib_postgresql":/var/lib/postgresql \
-      --volume "${APP_CONTAINER_NAME}_${image_tag}_var_log_postgresql":/var/log/postgresql \
       --volume "${APP_CONTAINER_NAME}_${image_tag}_config_sublimetext_3":/home/"${container_username}"/.config/sublime-text-3 \
       --volume "/tmp/.X11-unix":"/tmp/.X11-unix":ro \
       --volume "${xauth}":"${xauth}":ro \
