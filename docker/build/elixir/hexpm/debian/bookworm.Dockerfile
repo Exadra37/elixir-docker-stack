@@ -1,4 +1,4 @@
-ARG OS_TAG=bullseye-20240926
+ARG OS_TAG=bookworm-20240926
 ARG DOCKER_ERLANG_VERSION=27.1.1
 ARG DOCKER_ELIXIR_VERSION=1.17.3
 
@@ -46,9 +46,9 @@ RUN \
     zsh \
     unzip \
     curl \
-    git && \
+    git
 
-  mkdir -p "${DOCKER_BUILD}" && \
+RUN mkdir -p "${DOCKER_BUILD}" && \
 
   curl \
     -fsSl \
@@ -86,7 +86,7 @@ RUN \
 
   find /usr -type d -name examples | xargs rm -rf
 
-RUN apt install -y python2
+# RUN apt install -y python2
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 

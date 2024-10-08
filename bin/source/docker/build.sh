@@ -432,6 +432,16 @@ Build_Docker_Image()
 
           ### DEBIAN ###
 
+          "bookworm" )
+            # build_args="${build_args} --build-arg OS_TAG=bookworm-20221004"
+            build_args="${build_args} --build-arg OS_TAG=bookworm-${EDS_HEXPM_OS_BUILD_DATE:-20240926}"
+            ;;
+
+          "bookworm-slim" )
+            # build_args="${build_args} --build-arg OS_TAG=bookworm-20221004-slim"
+            build_args="${build_args} --build-arg OS_TAG=bookworm-${EDS_HEXPM_OS_BUILD_DATE:-20240926}-slim"
+            ;;
+
           "bullseye" )
             # build_args="${build_args} --build-arg OS_TAG=bullseye-20221004"
             build_args="${build_args} --build-arg OS_TAG=bullseye-${EDS_HEXPM_OS_BUILD_DATE:-20230202}"
@@ -482,7 +492,7 @@ Build_Docker_Image()
             ;;
 
           * )
-            build_args="${build_args} --build-arg OS_TAG=bullseye-slim"
+            build_args="${build_args} --build-arg OS_TAG=bookworm-slim"
             ;;
         esac
         ;;

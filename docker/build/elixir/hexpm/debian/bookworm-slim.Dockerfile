@@ -1,8 +1,8 @@
-ARG OS_TAG=bullseye-20240926
+ARG OS_TAG=bookworm-20240926
 ARG DOCKER_ERLANG_VERSION=27.1.1
 ARG DOCKER_ELIXIR_VERSION=1.17.3
 
-FROM hexpm/elixir:${DOCKER_ELIXIR_VERSION}-erlang-${DOCKER_ERLANG_VERSION}-debian-${OS_TAG}
+FROM hexpm/elixir:${DOCKER_ELIXIR_VERSION}-erlang-${DOCKER_ERLANG_VERSION}-debian-${OS_TAG} AS final
 
 ENV DOCKER_OS_TAG=${OS_TAG}
 
@@ -82,17 +82,13 @@ RUN \
     "${WORKSPACE_PATH}" \
     "${CONTAINER_USER_NAME}" && \
 
-  # "${DOCKER_BUILD}"/scripts/postgres/debian/install-pgcli.sh && \
+  "${DOCKER_BUILD}"/scripts/postgres/debian/install-pgcli.sh && \
 
-  find /usr -type d -name examples | xargs rm -rf
+  find /usr -type d -name examples | xargs rm -rf && \
 
-RUN apt install -y python2
-
-RUN ln -s /usr/bin/python3 /usr/bin/python
-
-RUN apt auto-remove && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
+  apt auto-remove && \
+  apt clean && \
+  rm -rf /var/lib/apt/lists/*
 
 USER "${CONTAINER_USER_NAME}"
 
