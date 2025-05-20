@@ -96,7 +96,7 @@ Start_Observer_Container()
 
     Print_Text_With_Label "OBSERVER COMMAND" "${observer_command}" "2"
 
-    ${SUDO_PREFIX} docker run \
+    ${SUDO_PREFIX} ${CONTAINER_ENGINE} run \
       --rm \
       -it \
       --user "${observer_container_username}" \

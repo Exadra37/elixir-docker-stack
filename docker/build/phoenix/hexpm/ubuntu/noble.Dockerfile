@@ -2,7 +2,7 @@ ARG ELIXIR_TAG=latest
 
 FROM exadra37/elixir-dev:${ELIXIR_TAG}
 
-ARG DOCKER_PHOENIX_VERSION=1.7.14
+ARG DOCKER_PHOENIX_VERSION=1.7.21
 
 ARG NODE_VERSION=20
 
@@ -40,7 +40,7 @@ RUN apt -y auto-remove && \
 USER "${CONTAINER_USER_NAME}"
 
 RUN \
-  mkdir /home/developer/.ssh/ && \
+  mkdir "${CONTAINER_HOME}"/.ssh/ && \
   ssh-keyscan -t rsa github.com >>  /home/"${CONTAINER_USER_NAME}"/.ssh/known_hosts && \
   ssh-keyscan -t rsa gitlab.com >> /home/"${CONTAINER_USER_NAME}"/.ssh/known_hosts && \
   "${DOCKER_BUILD}"/scripts/elixir/phoenix/install-from-git-branch.bash \

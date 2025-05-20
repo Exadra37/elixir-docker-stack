@@ -256,9 +256,17 @@ Add_Database_If_Required()
   if Is_App_With_Postgres_Database; then
 
     # Pinning database defaults to be used each time we run the Elixir Docker Stack
-    echo "EDS_DATABASE_IMAGE=${EDS_DATABASE_IMAGE}" >> "${APP_PATH}/${stack_defaults_file}"
-    echo "EDS_DATABASE_USER=${EDS_DATABASE_USER}" >> "${APP_PATH}/${stack_defaults_file}"
-    echo "EDS_DATABASE_COMMAND=${EDS_DATABASE_COMMAND}" >> "${APP_PATH}/${stack_defaults_file}"
+    if ! grep -qw "EDS_DATABASE_IMAGE" .elixir-docker-stack-defaults; then
+      echo "EDS_DATABASE_IMAGE=${EDS_DATABASE_IMAGE}" >> "${APP_PATH}/${stack_defaults_file}"
+    fi
+
+    if ! grep -qw "EDS_DATABASE_USER" .elixir-docker-stack-defaults; then
+      echo "EDS_DATABASE_USER=${EDS_DATABASE_USER}" >> "${APP_PATH}/${stack_defaults_file}"
+    fi
+
+    if ! grep -qw "EDS_DATABASE_COMMAND" .elixir-docker-stack-defaults; then
+      echo "EDS_DATABASE_COMMAND=${EDS_DATABASE_COMMAND}" >> "${APP_PATH}/${stack_defaults_file}"
+    fi
 
     local database_container_name="$( Build_Database_Container_Name ${EDS_DATABASE_IMAGE} )"
 
@@ -302,9 +310,10 @@ Attach_To_App_Container()
 
     APP_NODE_NAME="${DOCKER_APP_NAME}@$( Get_Container_Ip_Address ${APP_CONTAINER_NAME} )"
 
-    ${SUDO_PREFIX} docker exec \
+    ${SUDO_PREFIX} ${CONTAINER_ENGINE} exec \
       --user ${container_username} \
       ${CONTAINER_ENV} \
+      ${CONTAINER_USER_NAMESPACE} \
       --env "MIX_ENV=${mix_env}" \
       --env "APP_NODE_NAME=${APP_NODE_NAME}" \
       --env "APP_NODE_COOKIE=${ERLANG_COOKIE}" \
@@ -477,6 +486,8 @@ Start_Or_Attach_To_App_Container()
 
     Create_Docker_Network_If_Not_Exists "${APP_NETWORK}"
 
+    mkdir -p "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/.local/shell
+
     # Raises an Erlang error when starting the iex session with `iex --name user@example.com`.
     # It works if we start the iex session with the `--cookie mycookie` flag.
     # --volume "${_erlang_cookie_path}":/home/"${container_username}"/.erlang.cookie \
@@ -485,11 +496,12 @@ Start_Or_Attach_To_App_Container()
     # --volume "${APP_CONTAINER_NAME}_${image_tag}_var_lib_postgresql":/var/lib/postgresql \
     # --volume "${APP_CONTAINER_NAME}_${image_tag}_var_log_postgresql":/var/log/postgresql \
 
-    ${SUDO_PREFIX} docker run \
+    ${SUDO_PREFIX} ${CONTAINER_ENGINE} run \
       --rm \
       ${background_mode} \
       ${env_file_option} \
       ${CONTAINER_ENV} \
+      ${CONTAINER_USER_NAMESPACE} \
       ${_publish_ports} \
       --env "PORT=${EDS_CONTAINER_HTTP_PORT}" \
       --env "APP_HTTP_PORT=${EDS_APP_HTTP_PORT}" \
@@ -506,6 +518,7 @@ Start_Or_Attach_To_App_Container()
       --user "${container_username}" \
       --network "${APP_NETWORK}" \
       --workdir /home/"${container_username}/${APP_CONTAINER_RELATIVE_PATH}" \
+      --volume "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/.local/shell/.zsh_history:/home/${container_username}/.zsh_history \
       --volume "${iex_file}":/home/"${container_username}"/.iex.exs \
       --volume "${APP_CONTAINER_NAME}_${image_tag}_mix_cache":/home/"${container_username}"/.cache/mix/ \
       --volume "${APP_CONTAINER_NAME}_${image_tag}_mix_archive":/home/"${container_username}"/.mix/archives \

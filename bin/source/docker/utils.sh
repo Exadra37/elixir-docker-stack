@@ -43,7 +43,7 @@ Is_Not_Present_Docker_Image()
   # EXECUTION
   ############################################################################
 
-    [ -z $( ${SUDO_PREFIX} docker images -q "${_image_name}" ) ] && return 0 || return 1
+    [ -z $( ${SUDO_PREFIX} ${CONTAINER_ENGINE} images -q "${_image_name}" ) ] && return 0 || return 1
 }
 
 Docker_Container_Is_Running()
@@ -59,7 +59,7 @@ Docker_Container_Is_Running()
   # EXECUTION
   ############################################################################
 
-    ${SUDO_PREFIX} docker container ls -a | grep -qw "${container_name}" -
+    ${SUDO_PREFIX} ${CONTAINER_ENGINE} container ls | grep -qw "${container_name}" -
 
     return $?
 }
@@ -77,7 +77,7 @@ Get_Container_Ip_Address()
   # EXECUTION
   ############################################################################
 
-    echo -n $( ${SUDO_PREFIX} docker exec -it ${container_name} sh -c 'echo -n $(hostname -i)' )
+    echo -n $( ${SUDO_PREFIX} ${CONTAINER_ENGINE} exec -it ${container_name} sh -c 'echo -n $(hostname -i)' )
 }
 
 Get_Container_Username_UID()
@@ -94,7 +94,7 @@ Get_Container_Username_UID()
   # EXECUTION
   ############################################################################
 
-    echo -n $( ${SUDO_PREFIX} docker run --rm -it --entrypoint "bash -c" --user ${user_name} ${docker_image} 'echo -n $(id -u)' )
+    echo -n $( ${SUDO_PREFIX} ${CONTAINER_ENGINE} run --rm -it --entrypoint "bash -c" --user ${user_name} ${docker_image} 'echo -n $(id -u)' )
 }
 
 Get_Docker_Image_Tag()
@@ -133,7 +133,7 @@ Create_Docker_Network_If_Not_Exists()
   # EXECUTION
   ############################################################################
 
-    ${SUDO_PREFIX} docker network create "${network_name}" &> /dev/null || true
+    ${SUDO_PREFIX} ${CONTAINER_ENGINE} network create "${network_name}" &> /dev/null || true
 }
 
 Create_Docker_Volume()
@@ -151,7 +151,7 @@ Create_Docker_Volume()
 
     Print_Text_With_Label "CREATING DOCKER VOLUME:" "${container_name}" "2"
 
-    ${SUDO_PREFIX} docker volume create "${container_name}"
+    ${SUDO_PREFIX} ${CONTAINER_ENGINE} volume create "${container_name}"
 }
 
 Stop_And_Remove_Docker_Containers()
@@ -166,7 +166,7 @@ Stop_And_Remove_Docker_Containers()
 
         # no need to remove the containers explicitly, once they where started
         # with the `--rm` flag
-        ${SUDO_PREFIX} docker stop "${container_name}"
+        ${SUDO_PREFIX} ${CONTAINER_ENGINE} stop "${container_name}"
       fi
 
     done
@@ -185,7 +185,7 @@ Remove_Docker_Network()
   # EXECUTION
   ############################################################################
 
-    ${SUDO_PREFIX} docker network rm "${network_name}"
+    ${SUDO_PREFIX} ${CONTAINER_ENGINE} network rm "${network_name}"
 }
 
 Remove_Docker_Network_If_Not_Active()
@@ -201,7 +201,7 @@ Remove_Docker_Network_If_Not_Active()
   # EXECUTION
   ############################################################################
 
-    ${SUDO_PREFIX} docker network rm "${network_name}" 2&> /dev/null
+    ${SUDO_PREFIX} ${CONTAINER_ENGINE} network rm "${network_name}" 2&> /dev/null
 }
 
 
@@ -223,4 +223,14 @@ Remove_Docker_Network_If_Container_Is_Not_Running()
     # if ! Docker_Container_Is_Running "${container_name}"; then
     #   Remove_Docker_Network_If_Not_Active "${network_name}" &> /dev/null
     # fi
+}
+
+Get_Container_Engine() {
+    if which podman > /dev/null 2>&1; then
+        echo -n "podman"
+    elif which docker > /dev/null 2>&1; then
+        echo -n "docker"
+    else
+        echo -n "no_container_engine"
+    fi
 }

@@ -106,7 +106,7 @@ Attach_To_Database_Container()
       return
     fi
 
-    ${SUDO_PREFIX} docker exec \
+    ${SUDO_PREFIX} ${CONTAINER_ENGINE} exec \
       -it \
       --user "${database_user}" \
       "${database_container_name}" \
@@ -176,8 +176,9 @@ Start_Or_Attach_To_Database_Container()
 
     # @TODO Add support to use POSTGRES_PASSWORD from .env file
     # --env POSTGRES_PASSWORD="${POSTGRES_PASSWORD? Set password for the Postgres root user in the .env file: POSTGRES_PASSWORD=your-root-password}" \
-    ${SUDO_PREFIX} docker run \
+    ${SUDO_PREFIX} ${CONTAINER_ENGINE} run \
       "${background_mode}" \
+      --rm \
       --env POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}" \
       --hostname "${DOCKER_APP_NAME}_db" \
       --user "${database_user}" \

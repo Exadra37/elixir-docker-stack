@@ -426,77 +426,79 @@ Build_Docker_Image()
 
     local dockerfile_path="${DOCKER_BUILD_PATH}/${stack_name}/${stack_build_source}/${os_name}/${os_version}.${extension}"
 
-    case "${stack_build_source}" in
-      "hexpm" )
-        case "${os_version}" in
+    build_args="${build_args} --build-arg OS_TAG=${EDS_OS_VERSION}-${EDS_HEXPM_OS_BUILD_DATE}"
 
-          ### DEBIAN ###
+    # case "${stack_build_source}" in
+    #   "hexpm" )
+    #     case "${os_version}" in
 
-          "bookworm" )
-            # build_args="${build_args} --build-arg OS_TAG=bookworm-20221004"
-            build_args="${build_args} --build-arg OS_TAG=bookworm-${EDS_HEXPM_OS_BUILD_DATE:-20240926}"
-            ;;
+    #       ### DEBIAN ###
 
-          "bookworm-slim" )
-            # build_args="${build_args} --build-arg OS_TAG=bookworm-20221004-slim"
-            build_args="${build_args} --build-arg OS_TAG=bookworm-${EDS_HEXPM_OS_BUILD_DATE:-20240926}-slim"
-            ;;
+    #       "bookworm" )
+    #         # build_args="${build_args} --build-arg OS_TAG=bookworm-20221004"
+    #         build_args="${build_args} --build-arg OS_TAG=bookworm-${EDS_HEXPM_OS_BUILD_DATE:-20240926}"
+    #         ;;
 
-          "bullseye" )
-            # build_args="${build_args} --build-arg OS_TAG=bullseye-20221004"
-            build_args="${build_args} --build-arg OS_TAG=bullseye-${EDS_HEXPM_OS_BUILD_DATE:-20230202}"
-            ;;
+    #       "bookworm-slim" )
+    #         # build_args="${build_args} --build-arg OS_TAG=bookworm-20221004-slim"
+    #         build_args="${build_args} --build-arg OS_TAG=bookworm-${EDS_HEXPM_OS_BUILD_DATE:-20240926}-slim"
+    #         ;;
 
-          "bullseye-slim" )
-            # build_args="${build_args} --build-arg OS_TAG=bullseye-20221004-slim"
-            build_args="${build_args} --build-arg OS_TAG=bullseye-${EDS_HEXPM_OS_BUILD_DATE:-20230202}-slim"
-            ;;
+    #       "bullseye" )
+    #         # build_args="${build_args} --build-arg OS_TAG=bullseye-20221004"
+    #         build_args="${build_args} --build-arg OS_TAG=bullseye-${EDS_HEXPM_OS_BUILD_DATE:-20230202}"
+    #         ;;
 
-          "buster" )
-            build_args="${build_args} --build-arg OS_TAG=buster-20221004"
-            ;;
+    #       "bullseye-slim" )
+    #         # build_args="${build_args} --build-arg OS_TAG=bullseye-20221004-slim"
+    #         build_args="${build_args} --build-arg OS_TAG=bullseye-${EDS_HEXPM_OS_BUILD_DATE:-20230202}-slim"
+    #         ;;
 
-          "buster-slim" )
-            build_args="${build_args} --build-arg OS_TAG=buster-20221004-slim"
-            ;;
+    #       "buster" )
+    #         build_args="${build_args} --build-arg OS_TAG=buster-20221004"
+    #         ;;
 
-          "stretch" )
-            build_args="${build_args} --build-arg OS_TAG=stretch-20210902"
-            ;;
+    #       "buster-slim" )
+    #         build_args="${build_args} --build-arg OS_TAG=buster-20221004-slim"
+    #         ;;
 
-          "stretch-slim" )
-            build_args="${build_args} --build-arg OS_TAG=stretch-20210902-slim"
-            ;;
+    #       "stretch" )
+    #         build_args="${build_args} --build-arg OS_TAG=stretch-20210902"
+    #         ;;
+
+    #       "stretch-slim" )
+    #         build_args="${build_args} --build-arg OS_TAG=stretch-20210902-slim"
+    #         ;;
 
 
-          ### UBUNTU ###
+    #       ### UBUNTU ###
 
-          "groovy" )
-            build_args="${build_args} --build-arg OS_TAG=groovy-20210325"
-            ;;
+    #       "groovy" )
+    #         build_args="${build_args} --build-arg OS_TAG=groovy-20210325"
+    #         ;;
 
-          "focal" )
-            build_args="${build_args} --build-arg OS_TAG=focal-20210325"
-            ;;
+    #       "focal" )
+    #         build_args="${build_args} --build-arg OS_TAG=focal-20210325"
+    #         ;;
 
-          "bionic" )
-            build_args="${build_args} --build-arg OS_TAG=bionic-20210325"
-            ;;
+    #       "bionic" )
+    #         build_args="${build_args} --build-arg OS_TAG=bionic-20210325"
+    #         ;;
 
-          "xenial" )
-            build_args="${build_args} --build-arg OS_TAG=xenial-20210114"
-            ;;
+    #       "xenial" )
+    #         build_args="${build_args} --build-arg OS_TAG=xenial-20210114"
+    #         ;;
 
-          "trusty" )
-            build_args="${build_args} --build-arg OS_TAG=trusty-20191217"
-            ;;
+    #       "trusty" )
+    #         build_args="${build_args} --build-arg OS_TAG=trusty-20191217"
+    #         ;;
 
-          * )
-            build_args="${build_args} --build-arg OS_TAG=bookworm-slim"
-            ;;
-        esac
-        ;;
-    esac
+    #       * )
+    #         build_args="${build_args} --build-arg OS_TAG=bookworm-slim"
+    #         ;;
+    #     esac
+    #     ;;
+    # esac
 
 
   ##############################################################################
@@ -514,12 +516,12 @@ Build_Docker_Image()
     Print_Text_With_Label "DOCKER BUILD ARGS" "${build_args}" "3"
 
     local _docker_image="${image_name}:${image_tag}"
-    local _image_id=$( ${SUDO_PREFIX} docker image ls "${_docker_image}"  | tail -n +2 | awk '{print $3}' )
+    local _image_id=$( ${SUDO_PREFIX} ${CONTAINER_ENGINE} image ls "${_docker_image}"  | tail -n +2 | awk '{print $3}' )
 
     # --no-cache \
       # --force-rm \
 
-    ${SUDO_PREFIX} docker build \
+    ${SUDO_PREFIX} ${CONTAINER_ENGINE} build \
       ${build_args} \
       ${build_options} \
       --file "${dockerfile_path}" \
@@ -532,7 +534,7 @@ Build_Docker_Image()
     if [ -n "${_image_id}" ]; then
       # @TODO This command will fail when a docker container is referencing it.
       #       We may want to show a user friendly alert to the user when it fails.
-      ${SUDO_PREFIX} docker image rm "${_image_id}"
+      ${SUDO_PREFIX} ${CONTAINER_ENGINE} image rm "${_image_id}"
     fi
 }
 

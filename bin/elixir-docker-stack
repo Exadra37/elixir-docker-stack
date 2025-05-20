@@ -96,6 +96,8 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
         Print_Fatal_Error "Cannot find Elixir Docker Stack install dir: ${ELIXIR_DOCKER_STACK_INSTALL_DIR}"
       fi
 
+      local CONTAINER_ENGINE=$(Get_Container_Engine)
+
       local is_local_docker_image=false
 
       local EDS_STACK_BUILD_SOURCE=hexpm
@@ -239,7 +241,17 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
 
       local VERBOSE_LEVEL=0
 
+      local CONTAINER_USER_NAMESPACE=
 
+      if [ "${CONTAINER_ENGINE}" == "podman" ]; then
+        SUDO_PREFIX=
+
+        # @link https://www.redhat.com/sysadmin/rootless-podman-user-namespace-modes
+        # @link https://www.tutorialworks.com/podman-rootless-volumes/
+        CONTAINER_USER_NAMESPACE=--userns=keep-id
+      fi
+
+      Print_Text_With_Label "CONTAINER_ENGINE" "${CONTAINER_ENGINE}" "1"
 
 
     ############################################################################
@@ -255,6 +267,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
       if [ "${phoenix_major_version}" \< "1.4" ]; then
         EDS_PHOENIX_COMMAND=phoenix.server
       fi
+
 
       local container_username=""
 
@@ -577,7 +590,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
           container-logs )
             Print_Text_With_Label "COMMAND" "container-logs" "4"
 
-            ${SUDO_PREFIX} docker logs -f "${APP_CONTAINER_NAME}"
+            ${SUDO_PREFIX} ${CONTAINER_ENGINE} logs -f "${APP_CONTAINER_NAME}"
             exit 0
           ;;
 
@@ -594,7 +607,7 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
           ;;
 
           logs )
-            "${SUDO_PREFIX}" docker logs --follow "${APP_CONTAINER_NAME}"
+            "${SUDO_PREFIX}" ${CONTAINER_ENGINE} logs --follow "${APP_CONTAINER_NAME}"
             exit 0
           ;;
 
