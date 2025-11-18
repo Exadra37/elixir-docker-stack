@@ -1,8 +1,8 @@
-ARG OS_TAG=bookworm-20240926-slim
-ARG DOCKER_ERLANG_VERSION=27.1.1
-ARG DOCKER_ELIXIR_VERSION=1.17.3
+ARG OS_TAG=trixie-20251117
+ARG DOCKER_ERLANG_VERSION=28.1.1
+ARG DOCKER_ELIXIR_VERSION=1.19.3
 
-FROM hexpm/elixir:${DOCKER_ELIXIR_VERSION}-erlang-${DOCKER_ERLANG_VERSION}-debian-${OS_TAG} AS final
+FROM hexpm/elixir:${DOCKER_ELIXIR_VERSION}-erlang-${DOCKER_ERLANG_VERSION}-debian-${OS_TAG}
 
 ENV DOCKER_OS_TAG=${OS_TAG}
 
@@ -46,9 +46,9 @@ RUN \
     zsh \
     unzip \
     curl \
-    git && \
+    git
 
-  mkdir -p "${DOCKER_BUILD}" && \
+RUN mkdir -p "${DOCKER_BUILD}" && \
 
   curl \
     -fsSl \
@@ -82,13 +82,17 @@ RUN \
     "${WORKSPACE_PATH}" \
     "${CONTAINER_USER_NAME}" && \
 
-  "${DOCKER_BUILD}"/scripts/postgres/debian/install-pgcli.sh && \
+  # "${DOCKER_BUILD}"/scripts/postgres/debian/install-pgcli.sh && \
 
-  find /usr -type d -name examples | xargs rm -rf && \
+  find /usr -type d -name examples | xargs rm -rf
 
-  apt auto-remove && \
-  apt clean && \
-  rm -rf /var/lib/apt/lists/*
+# RUN apt install -y python2
+
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+RUN apt auto-remove && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*
 
 USER "${CONTAINER_USER_NAME}"
 

@@ -305,6 +305,14 @@ source "${ELIXIR_DOCKER_STACK_INSTALL_DIR}"/bin/source/stack/architecture.sh
             shift 2
           ;;
 
+          --docker )
+            Print_Text_With_Label "OPTION" "--docker" "4"
+
+            CONTAINER_ENGINE=docker
+            CONTAINER_USER_NAMESPACE=
+            shift 1
+          ;;
+
           -d | --detach )
             Print_Text_With_Label "OPTION" "-d, --detach" "4"
 

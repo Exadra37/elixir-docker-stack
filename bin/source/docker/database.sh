@@ -49,7 +49,8 @@ Build_Database_Data_Path()
   # EXECUTION
   ############################################################################
 
-    echo -n "${HOST_SETUP_PATH}/database/${database_type}"/data
+    # echo -n "${HOST_SETUP_PATH}/${CONTAINER_ENGINE}_database/${database_type}"/data
+    echo -n "${HOST_SETUP_PATH}/database/${database_type}"
 }
 
 Build_Database_Container_Name()
@@ -151,13 +152,13 @@ Start_Or_Attach_To_Database_Container()
 
       # local user_uid=$( Get_Container_Username_UID "${database_image}" "${database_user}" )
       # local user_uid=70 # alpine
-      local user_uid=999 # debian
+      # local user_uid=999 # debian
 
-      Print_Text_With_Label "USER UID (${database_user})" "${user_uid}" "3"
+      # Print_Text_With_Label "USER UID (${database_user})" "${user_uid}" "3"
 
       mkdir -p "${database_data_dir}"
 
-      ${SUDO_PREFIX} chown -R ${user_uid}:${user_uid} "${database_data_dir}/.."
+      # ${SUDO_PREFIX} chown -R ${user_uid}:${user_uid} "${database_data_dir}/.."
     fi
 
     if Docker_Container_Is_Running "${database_container_name}"; then
@@ -178,13 +179,14 @@ Start_Or_Attach_To_Database_Container()
     # --env POSTGRES_PASSWORD="${POSTGRES_PASSWORD? Set password for the Postgres root user in the .env file: POSTGRES_PASSWORD=your-root-password}" \
     ${SUDO_PREFIX} ${CONTAINER_ENGINE} run \
       "${background_mode}" \
+      ${CONTAINER_USER_NAMESPACE} \
       --rm \
       --env POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}" \
       --hostname "${DOCKER_APP_NAME}_db" \
       --user "${database_user}" \
       --name "${database_container_name}" \
       --network "${APP_NETWORK}" \
-      --volume "${database_data_dir}":/var/lib/postgresql/data \
+      --volume "${database_data_dir}":/var/lib/postgresql \
       "${database_image}" ${databse_execute_command} ${args}
 }
 
